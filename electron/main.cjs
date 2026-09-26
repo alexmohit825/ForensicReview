@@ -9,7 +9,7 @@ app.setAppUserModelId(APP_ID);
 let mainWindow = null;
 
 function createWindow() {
-  const iconPath = path.join(__dirname, '../public/app-icon.ico');
+  const iconPath = path.join(__dirname, '../public/app-icon-white.ico');
   const appIcon = nativeImage.createFromPath(iconPath);
 
   mainWindow = new BrowserWindow({
