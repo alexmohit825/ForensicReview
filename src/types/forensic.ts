@@ -142,6 +142,19 @@ export interface CaseProfile {
   standardOfCareDetermination: 'MET' | 'BREACHED' | 'INCONCLUSIVE';
   causationOpinion: string;
   depositionPrep: DepositionQuestion[];
+  generatedArtifacts: CaseArtifact[];
+  lastModified?: string;
+}
+
+export interface CaseArtifact {
+  id: string;
+  title: string;
+  type: 'PPTX_PRESENTATION' | 'EXPERT_REPORT_PDF' | 'SYNOPSIS_DOCUMENT' | 'TIMELINE_TABLE';
+  fileName: string;
+  createdAt: string;
+  fileSize?: string;
+  description: string;
+  pageCountOrSlides: number;
 }
 
 export interface SectionGuide {

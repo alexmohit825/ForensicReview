@@ -3,58 +3,59 @@ import os
 
 def create_icon():
     size = 512
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    img = Image.new("RGBA", (size, size), (255, 255, 255, 0))
     draw = ImageDraw.Draw(img)
 
-    # Base Clean White Box Container with Subtle Border
-    margin = 24
-    corner_radius = 88
+    # Solid White Tile Background (Squircle with minimal margin to pop on Windows dark taskbar)
+    margin = 8
+    corner_radius = 72
     draw.rounded_rectangle(
         [margin, margin, size - margin, size - margin],
         radius=corner_radius,
-        fill=(255, 255, 255, 255),
-        outline=(203, 213, 225, 255),
-        width=8
+        fill=(255, 255, 255, 255), # Solid Pure White Box
+        outline=(203, 213, 225, 255), # Subtle Slate-300 border
+        width=10
     )
 
-    # Balance pillar
     cx = size // 2
-    draw.line([cx, 130, cx, 360], fill=(71, 85, 105, 255), width=8)
-    draw.rounded_rectangle([cx - 30, 360, cx + 30, 376], radius=4, fill=(51, 65, 85, 255))
-    draw.rounded_rectangle([cx - 45, 376, cx + 45, 394], radius=6, fill=(30, 41, 59, 255))
 
-    # Balance beam (Rich Amber Gold)
-    beam_y = 175
-    draw.line([130, beam_y + 10, cx, beam_y, 382, beam_y + 10], fill=(217, 119, 6, 255), width=8)
-    draw.ellipse([cx - 10, beam_y - 10, cx + 10, beam_y + 10], fill=(217, 119, 6, 255))
+    # Balance pillar (Dark Slate for crisp contrast against white)
+    draw.line([cx, 120, cx, 360], fill=(51, 65, 85, 255), width=10)
+    draw.rounded_rectangle([cx - 32, 360, cx + 32, 378], radius=4, fill=(30, 41, 59, 255))
+    draw.rounded_rectangle([cx - 50, 378, cx + 50, 398], radius=6, fill=(15, 23, 42, 255))
 
-    # Left Pan (Defense - Royal Blue)
-    draw.line([130, beam_y + 10, 105, 250], fill=(37, 99, 235, 255), width=4)
-    draw.line([130, beam_y + 10, 155, 250], fill=(37, 99, 235, 255), width=4)
-    draw.pieslice([90, 240, 170, 280], 0, 180, fill=(37, 99, 235, 255))
+    # Balance beam (Rich Amber/Gold)
+    beam_y = 170
+    draw.line([120, beam_y + 12, cx, beam_y, 392, beam_y + 12], fill=(217, 119, 6, 255), width=10)
+    draw.ellipse([cx - 12, beam_y - 12, cx + 12, beam_y + 12], fill=(217, 119, 6, 255))
+
+    # Left Pan (Defense - Royal Cobalt Blue)
+    draw.line([120, beam_y + 12, 95, 250], fill=(29, 78, 216, 255), width=4)
+    draw.line([120, beam_y + 12, 145, 250], fill=(29, 78, 216, 255), width=4)
+    draw.pieslice([80, 240, 160, 280], 0, 180, fill=(37, 99, 235, 255), outline=(29, 78, 216, 255), width=2)
 
     # Right Pan (Plaintiff - Crimson Red)
-    draw.line([382, beam_y + 10, 357, 250], fill=(220, 38, 38, 255), width=4)
-    draw.line([382, beam_y + 10, 407, 250], fill=(220, 38, 38, 255), width=4)
-    draw.pieslice([342, 240, 422, 280], 0, 180, fill=(220, 38, 38, 255))
+    draw.line([392, beam_y + 12, 367, 250], fill=(185, 28, 28, 255), width=4)
+    draw.line([392, beam_y + 12, 417, 250], fill=(185, 28, 28, 255), width=4)
+    draw.pieslice([352, 240, 432, 280], 0, 180, fill=(220, 38, 38, 255), outline=(185, 28, 28, 255), width=2)
 
-    # ECG Wave cutting across in Deep Cyan / Medical Sky
+    # ECG Wave cutting across in Deep Medical Blue/Cyan
     ecg_pts = [
-        (65, 315),
-        (165, 315),
-        (185, 285),
-        (205, 345),
-        (230, 215),
-        (256, 385),
+        (55, 315),
+        (155, 315),
+        (175, 280),
+        (195, 345),
+        (225, 210),
+        (256, 390),
         (275, 285),
         (295, 325),
         (315, 310),
-        (447, 310)
+        (457, 310)
     ]
-    draw.line(ecg_pts, fill=(2, 132, 199, 255), width=7, joint="round")
+    draw.line(ecg_pts, fill=(2, 132, 199, 255), width=8, joint="round")
 
     # Scalpel diamond top
-    diamond_pts = [(cx, 102), (cx + 12, 120), (cx, 138), (cx - 12, 120)]
+    diamond_pts = [(cx, 94), (cx + 14, 112), (cx, 130), (cx - 14, 112)]
     draw.polygon(diamond_pts, fill=(2, 132, 199, 255))
 
     # Ensure output directories exist
@@ -63,12 +64,12 @@ def create_icon():
     ico_path = os.path.join("public", "app-icon.ico")
 
     img.save(png_path, "PNG")
-    print(f"Generated {png_path} (White box background)")
+    print(f"Generated {png_path} (Solid White Box)")
 
-    # Generate multi-size ICO
+    # Generate multi-size ICO including 16, 24, 32, 48, 64, 128, 256
     icon_sizes = [(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)]
     img.save(ico_path, format="ICO", sizes=icon_sizes)
-    print(f"Generated {ico_path} (White box background)")
+    print(f"Generated {ico_path} (Solid White Box)")
 
 if __name__ == "__main__":
     create_icon()

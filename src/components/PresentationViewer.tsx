@@ -22,12 +22,14 @@ interface PresentationViewerProps {
   currentCase: CaseProfile;
   stance: StanceMode;
   onJumpToBates: (batesNumber: string) => void;
+  onUpdateCase?: (updated: Partial<CaseProfile>) => void;
 }
 
 export const PresentationViewer: React.FC<PresentationViewerProps> = ({
   currentCase,
   stance,
-  onJumpToBates
+  onJumpToBates,
+  onUpdateCase
 }) => {
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number>(0);
   const [isExporting, setIsExporting] = useState<boolean>(false);
@@ -54,6 +56,26 @@ export const PresentationViewer: React.FC<PresentationViewerProps> = ({
       setIsExporting(true);
       const fileName = await exportToPowerPoint(currentCase, stance);
       setDownloadSuccess(fileName);
+
+      // Register generated PPT artifact in the patient's case directory
+      if (onUpdateCase) {
+        const newArtifact = {
+          id: `art-ppt-${Date.now()}`,
+          title: `20-Slide Forensic Presentation (${isDefense ? 'Defense' : 'Plaintiff'})`,
+          type: 'PPTX_PRESENTATION' as const,
+          fileName,
+          createdAt: new Date().toISOString(),
+          fileSize: '1.2 MB',
+          description: `20-slide courtroom presentation synchronized with ${currentCase.documents.reduce((acc, d) => acc + d.pageCount, 0)} pages of medical records.`,
+          pageCountOrSlides: 20
+        };
+        const existing = currentCase.generatedArtifacts || [];
+        onUpdateCase({
+          generatedArtifacts: [newArtifact, ...existing.filter(a => a.fileName !== fileName)],
+          lastModified: new Date().toISOString()
+        });
+      }
+
       setTimeout(() => setDownloadSuccess(null), 5000);
     } catch (err) {
       console.error('Failed to export presentation', err);

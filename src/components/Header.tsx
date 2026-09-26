@@ -12,7 +12,8 @@ import {
   FolderPlus,
   Compass,
   AlertTriangle,
-  Presentation
+  Presentation,
+  FolderOpen
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -24,6 +25,8 @@ interface HeaderProps {
   isGuideOpen: boolean;
   onToggleGuide: () => void;
   onNewCase: () => void;
+  onOpenCaseDirectory: () => void;
+  caseCount: number;
   onLoadBenchmark: () => void;
   hasDocuments: boolean;
 }
@@ -37,6 +40,8 @@ export const Header: React.FC<HeaderProps> = ({
   isGuideOpen,
   onToggleGuide,
   onNewCase,
+  onOpenCaseDirectory,
+  caseCount,
   onLoadBenchmark,
   hasDocuments
 }) => {
@@ -109,6 +114,16 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <HelpCircle className="w-4 h-4 text-cyan-400" />
             <span>Forensic Guide</span>
+          </button>
+
+          {/* Case Directory Trigger */}
+          <button
+            onClick={onOpenCaseDirectory}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-950/70 text-cyan-300 border border-cyan-800/80 hover:bg-cyan-900 transition-colors shadow-sm"
+            title="Open Multi-Case Directory & Patient Archives"
+          >
+            <FolderOpen className="w-4 h-4 text-cyan-400" />
+            <span>Case Directory ({caseCount})</span>
           </button>
 
           {/* New Case Button */}

@@ -1,17 +1,24 @@
-const { app, BrowserWindow, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, nativeImage } = require('electron');
 const path = require('path');
 const fs = require('fs');
+
+// Explicit Windows AppUserModelID ensures Windows Taskbar pins and uses the custom icon
+const APP_ID = 'com.forensicreview.workstation';
+app.setAppUserModelId(APP_ID);
 
 let mainWindow = null;
 
 function createWindow() {
+  const iconPath = path.join(__dirname, '../public/app-icon.ico');
+  const appIcon = nativeImage.createFromPath(iconPath);
+
   mainWindow = new BrowserWindow({
-    width: 1520,
+    width: 1540,
     height: 960,
     minWidth: 1150,
     minHeight: 720,
     title: 'ForensicReview — Medicolegal Forensic Workstation',
-    icon: path.join(__dirname, '../public/app-icon.ico'),
+    icon: appIcon,
     backgroundColor: '#0b0f19',
     autoHideMenuBar: true,
     show: false,
@@ -22,6 +29,8 @@ function createWindow() {
       allowRunningInsecureContent: false
     }
   });
+
+  mainWindow.setIcon(appIcon);
 
   // Load the production build
   const distPath = path.join(__dirname, '../dist/index.html');

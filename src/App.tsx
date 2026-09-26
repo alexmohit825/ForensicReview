@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { CaseProfile, StanceMode, IngestedDocument } from './types/forensic';
+import { CaseProfile, StanceMode, IngestedDocument, CaseArtifact } from './types/forensic';
 import { createEmptyCase, getBenchmarkTeachingCase } from './utils/forensicAnalyzer';
 import { extractClinicalEntities } from './utils/pdfParser';
+import { exportToPowerPoint } from './utils/pptGenerator';
 import { Header } from './components/Header';
 import { SectionGuideDrawer } from './components/SectionGuideDrawer';
 import { DocumentManager } from './components/DocumentManager';
@@ -9,30 +10,47 @@ import { GraphicTimeline } from './components/GraphicTimeline';
 import { StanceEvaluationView } from './components/StanceEvaluationView';
 import { ClinicalNarrative } from './components/ClinicalNarrative';
 import { DepositionPrepView } from './components/DepositionPrepView';
-import { ReportExportView } from './components/ReportExportView';
 import { PresentationViewer } from './components/PresentationViewer';
+import { ReportExportView } from './components/ReportExportView';
 import { DocumentViewerModal } from './components/DocumentViewerModal';
+import { CaseDirectoryModal } from './components/CaseDirectoryModal';
 
-const LOCAL_STORAGE_KEY = 'forensicreview_active_case_v1';
+const CASES_CATALOG_STORAGE_KEY = 'forensicreview_cases_catalog_v2';
+const ACTIVE_CASE_ID_STORAGE_KEY = 'forensicreview_active_case_id_v2';
 
 export const App: React.FC = () => {
-  // Application starts clean (no sandbox filler data) as requested by user
-  const [currentCase, setCurrentCase] = useState<CaseProfile>(() => {
-    const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (saved) {
+  // Multi-Case Directory State
+  const [cases, setCases] = useState<CaseProfile[]>(() => {
+    const savedCatalog = localStorage.getItem(CASES_CATALOG_STORAGE_KEY);
+    if (savedCatalog) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(savedCatalog);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
       } catch (e) {
-        console.error('Failed to parse saved case', e);
+        console.error('Failed to parse saved cases catalog', e);
       }
     }
-    return createEmptyCase();
+    // Starts clean with one empty case
+    return [createEmptyCase()];
   });
 
+  const [activeCaseId, setActiveCaseId] = useState<string>(() => {
+    const savedActiveId = localStorage.getItem(ACTIVE_CASE_ID_STORAGE_KEY);
+    if (savedActiveId && cases.some(c => c.id === savedActiveId)) {
+      return savedActiveId;
+    }
+    return cases[0]?.id || `case-${Date.now()}`;
+  });
+
+  // Current active case
+  const currentCase = cases.find(c => c.id === activeCaseId) || cases[0] || createEmptyCase();
   const [stance, setStance] = useState<StanceMode>(currentCase.retainingSide || 'DEFENSE');
   const [activeTab, setActiveTab] = useState<string>('ingestion');
   const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
   const [guideSectionId, setGuideSectionId] = useState<string>('ingestion');
+  const [isCaseDirectoryOpen, setIsCaseDirectoryOpen] = useState<boolean>(false);
 
   // Document Viewer Modal State
   const [viewerState, setViewerState] = useState<{
@@ -45,33 +63,85 @@ export const App: React.FC = () => {
     page: 1
   });
 
-  // Auto-save case to localStorage
+  // Keep stance synced with current case
   useEffect(() => {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(currentCase));
-  }, [currentCase]);
+    if (currentCase.retainingSide && currentCase.retainingSide !== stance) {
+      setStance(currentCase.retainingSide);
+    }
+  }, [currentCase.id]);
+
+  // Persist cases catalog and active ID
+  useEffect(() => {
+    localStorage.setItem(CASES_CATALOG_STORAGE_KEY, JSON.stringify(cases));
+  }, [cases]);
+
+  useEffect(() => {
+    localStorage.setItem(ACTIVE_CASE_ID_STORAGE_KEY, activeCaseId);
+  }, [activeCaseId]);
+
+  // Switch between cases
+  const handleSelectCase = (caseId: string) => {
+    setActiveCaseId(caseId);
+    const target = cases.find(c => c.id === caseId);
+    if (target) {
+      setStance(target.retainingSide);
+    }
+    setActiveTab('ingestion');
+  };
+
+  // Create a brand new case
+  const handleCreateNewCase = () => {
+    const newCase = createEmptyCase();
+    newCase.caseName = `New Forensic Case ${cases.length + 1}`;
+    setCases(prev => [newCase, ...prev]);
+    setActiveCaseId(newCase.id);
+    setStance('DEFENSE');
+    setActiveTab('ingestion');
+    setIsCaseDirectoryOpen(false);
+  };
+
+  // Delete a case and purge all associated records
+  const handleDeleteCase = (caseId: string) => {
+    const updated = cases.filter(c => c.id !== caseId);
+    if (updated.length === 0) {
+      const freshCase = createEmptyCase();
+      setCases([freshCase]);
+      setActiveCaseId(freshCase.id);
+      setStance('DEFENSE');
+    } else {
+      setCases(updated);
+      if (activeCaseId === caseId) {
+        setActiveCaseId(updated[0].id);
+        setStance(updated[0].retainingSide);
+      }
+    }
+  };
 
   // Keep stance synced
   const handleToggleStance = (newStance: StanceMode) => {
     setStance(newStance);
-    setCurrentCase(prev => ({ ...prev, retainingSide: newStance }));
+    handleUpdateCase({ retainingSide: newStance });
   };
 
+  // Update current case profile
   const handleUpdateCase = (updated: Partial<CaseProfile>) => {
-    setCurrentCase(prev => ({ ...prev, ...updated }));
+    setCases(prev => prev.map(c => {
+      if (c.id === currentCase.id) {
+        return {
+          ...c,
+          ...updated,
+          lastModified: new Date().toISOString()
+        };
+      }
+      return c;
+    }));
   };
 
-  const handleNewCase = () => {
-    if (window.confirm('Start a new empty forensic case? This will reset the workspace.')) {
-      const empty = createEmptyCase();
-      setCurrentCase(empty);
-      setActiveTab('ingestion');
-      localStorage.removeItem(LOCAL_STORAGE_KEY);
-    }
-  };
-
+  // Load Benchmark teaching case into catalog
   const handleLoadBenchmark = () => {
     const benchmark = getBenchmarkTeachingCase();
-    setCurrentCase(benchmark);
+    setCases(prev => [benchmark, ...prev.filter(c => c.id !== benchmark.id)]);
+    setActiveCaseId(benchmark.id);
     setStance(benchmark.retainingSide);
     setActiveTab('timeline');
   };
@@ -82,7 +152,6 @@ export const App: React.FC = () => {
 
     const { vitals, medications } = extractClinicalEntities(currentCase.documents);
 
-    // If records have minimal automated vitals, synthesize timeline milestones from text
     const defaultMilestones = currentCase.milestones.length > 0 
       ? currentCase.milestones 
       : currentCase.documents.map((doc, i) => ({
@@ -109,13 +178,12 @@ export const App: React.FC = () => {
           }
         }));
 
-    setCurrentCase(prev => ({
-      ...prev,
-      vitals: vitals.length > 0 ? vitals : prev.vitals,
-      medications: medications.length > 0 ? medications : prev.medications,
+    handleUpdateCase({
+      vitals: vitals.length > 0 ? vitals : currentCase.vitals,
+      medications: medications.length > 0 ? medications : currentCase.medications,
       milestones: defaultMilestones,
-      synopsisExecutive: prev.synopsisExecutive || `Case evaluation for ${prev.caseName || 'the patient'} based upon ${prev.documents.length} ingested records comprising ${prev.documents.reduce((acc, d) => acc + d.pageCount, 0)} pages.`
-    }));
+      synopsisExecutive: currentCase.synopsisExecutive || `Case evaluation for ${currentCase.caseName || 'the patient'} based upon ${currentCase.documents.length} ingested records comprising ${currentCase.documents.reduce((acc, d) => acc + d.pageCount, 0)} pages.`
+    });
 
     setActiveTab('timeline');
   };
@@ -129,7 +197,6 @@ export const App: React.FC = () => {
   };
 
   const handleSelectMilestoneForDoc = (pageNumber: number, batesNumber: string) => {
-    // Find document containing this page or Bates
     const foundDoc = currentCase.documents.find(
       d => (pageNumber >= d.batesStartNumber && pageNumber <= d.batesEndNumber) ||
            d.rawTextByPage.some(p => p.bates === batesNumber)
@@ -151,16 +218,22 @@ export const App: React.FC = () => {
     }
   };
 
-  // Open guide drawer for current tab
   const handleOpenFullGuide = (sectionId?: string) => {
     setGuideSectionId(sectionId || activeTab);
     setIsGuideOpen(true);
   };
 
+  // Re-download an existing stored artifact
+  const handleDownloadArtifact = async (artifact: CaseArtifact, caseProfile: CaseProfile) => {
+    if (artifact.type === 'PPTX_PRESENTATION') {
+      await exportToPowerPoint(caseProfile, caseProfile.retainingSide);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-cyan-500 selection:text-black">
       
-      {/* Top Application Header with Stance Switch & Guide */}
+      {/* Top Application Header */}
       <Header
         stance={stance}
         onToggleStance={handleToggleStance}
@@ -172,7 +245,9 @@ export const App: React.FC = () => {
         caseName={currentCase.caseName}
         isGuideOpen={isGuideOpen}
         onToggleGuide={() => handleOpenFullGuide(activeTab)}
-        onNewCase={handleNewCase}
+        onNewCase={handleCreateNewCase}
+        onOpenCaseDirectory={() => setIsCaseDirectoryOpen(true)}
+        caseCount={cases.length}
         onLoadBenchmark={handleLoadBenchmark}
         hasDocuments={currentCase.documents.length > 0}
       />
@@ -234,6 +309,7 @@ export const App: React.FC = () => {
             currentCase={currentCase}
             stance={stance}
             onJumpToBates={handleJumpToBates}
+            onUpdateCase={handleUpdateCase}
           />
         )}
 
@@ -245,6 +321,18 @@ export const App: React.FC = () => {
         )}
 
       </main>
+
+      {/* Multi-Case Directory & Patient Archive Modal */}
+      <CaseDirectoryModal
+        isOpen={isCaseDirectoryOpen}
+        onClose={() => setIsCaseDirectoryOpen(false)}
+        cases={cases}
+        activeCaseId={currentCase.id}
+        onSelectCase={handleSelectCase}
+        onCreateNewCase={handleCreateNewCase}
+        onDeleteCase={handleDeleteCase}
+        onDownloadArtifact={handleDownloadArtifact}
+      />
 
       {/* Toggleable Forensic Protocol & Legal Guide Drawer */}
       <SectionGuideDrawer
@@ -267,15 +355,17 @@ export const App: React.FC = () => {
       {/* Footer Status Bar */}
       <footer className="no-print bg-slate-900 border-t border-slate-800 text-[11px] text-slate-500 py-3 px-6">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 font-mono">
-          <div>
-            ForensicReview Workstation • Designed for Dr. A. Alex Mohit • Medicolegal Expert System
+          <div className="flex items-center gap-2">
+            <span>Case: <strong className="text-white">{currentCase.caseName || 'Untitled'}</strong></span>
+            <span>•</span>
+            <span>Patient: <strong className="text-slate-300">{currentCase.patientName || 'Confidential'}</strong></span>
           </div>
           <div className="flex items-center gap-4 text-slate-400">
             <span>Stance: <strong className={stance === 'DEFENSE' ? 'text-blue-400' : 'text-red-400'}>{stance}</strong></span>
             <span>•</span>
-            <span>Local Vault: Encrypted</span>
+            <span>Case Vault: {cases.length} Matters</span>
             <span>•</span>
-            <span>Zero Data Retention Mode</span>
+            <span>Encrypted Local Storage</span>
           </div>
         </div>
       </footer>

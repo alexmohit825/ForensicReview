@@ -33,7 +33,9 @@ export function createEmptyCase(): CaseProfile {
     synopsisNarrative: '',
     standardOfCareDetermination: 'INCONCLUSIVE',
     causationOpinion: '',
-    depositionPrep: []
+    depositionPrep: [],
+    generatedArtifacts: [],
+    lastModified: new Date().toISOString()
   };
 }
 
@@ -430,6 +432,19 @@ export function getBenchmarkTeachingCase(): CaseProfile {
     synopsisNarrative: 'The patient presented with classic symptoms concerning for Acute Aortic Syndrome alongside severe hypertension (188/112 mmHg). The emergency physician instituted IV beta-blockade (Labetalol and Esmolol) to achieve target heart rate and impulse control. A 3.5-hour interval elapsed prior to diagnostic CT Angiography, influenced by initial ACS workup and point-of-care renal function verification. Following radiologic diagnosis, immediate transfer was sought, but delayed by regional bed coordination constraints. Acute hemodynamic collapse occurred prior to transport.',
     standardOfCareDetermination: 'MET',
     causationOpinion: 'Based upon a reasonable degree of medical certainty, the attending emergency physician complied with prevailing standard of care by initiating immediate pharmacologic impulse control therapy with IV beta-blockers, mitigating wall stress. The catastrophic rupture was the consequence of pre-existing cystic medial necrosis and extensive ascending aortic structural disease rather than a deviation from the acceptable standard of medical care.',
-    depositionPrep
+    depositionPrep,
+    generatedArtifacts: [
+      {
+        id: 'art-demo-1',
+        title: '20-Slide Forensic Courtroom Presentation (Stanford Type A Dissection)',
+        type: 'PPTX_PRESENTATION',
+        fileName: 'ForensicReview_Estate_of_M__Davis_20Slide_Presentation.pptx',
+        createdAt: new Date().toISOString(),
+        fileSize: '1.2 MB',
+        description: 'Complete 20-slide courtroom presentation with hemodynamic curves and opposing counsel disproof.',
+        pageCountOrSlides: 20
+      }
+    ],
+    lastModified: new Date().toISOString()
   };
 }
