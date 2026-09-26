@@ -45,4 +45,50 @@
   .page-break {
     page-break-before: always;
   }
+
+  /* Independent Section Print Targeting */
+  body.printing-synopsis *:not(.print-synopsis-target, .print-synopsis-target *) {
+    display: none !important;
+  }
+  body.printing-synopsis .print-synopsis-target {
+    display: block !important;
+    width: 100% !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: 0;
+    padding: 15px;
+    background: white !important;
+    color: black !important;
+  }
+
+  body.printing-graphic *:not(.print-graphic-target, .print-graphic-target *) {
+    display: none !important;
+  }
+  body.printing-graphic .print-graphic-target {
+    display: block !important;
+    width: 100% !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: 0;
+    padding: 15px;
+    background: white !important;
+    color: black !important;
+  }
+
+  body.printing-table *:not(.print-table-target, .print-table-target *) {
+    display: none !important;
+  }
+  body.printing-table .print-table-target {
+    display: block !important;
+    width: 100% !important;
+    position: absolute;
+    left: 0;
+    top: 0;
+    margin: 0;
+    padding: 15px;
+    background: white !important;
+    color: black !important;
+  }
 }
