@@ -10,6 +10,7 @@ import { StanceEvaluationView } from './components/StanceEvaluationView';
 import { ClinicalNarrative } from './components/ClinicalNarrative';
 import { DepositionPrepView } from './components/DepositionPrepView';
 import { ReportExportView } from './components/ReportExportView';
+import { PresentationViewer } from './components/PresentationViewer';
 import { DocumentViewerModal } from './components/DocumentViewerModal';
 
 const LOCAL_STORAGE_KEY = 'forensicreview_active_case_v1';
@@ -185,6 +186,7 @@ export const App: React.FC = () => {
             onUpdateCase={handleUpdateCase}
             onAnalyzeRecords={handleAnalyzeRecords}
             onSelectDocumentForView={(doc, page) => handleOpenDocViewer(doc, page || 1)}
+            onNavigateToPresentation={() => setActiveTab('presentation')}
           />
         )}
 
@@ -224,6 +226,14 @@ export const App: React.FC = () => {
             onOpenFullGuide={() => handleOpenFullGuide('deposition')}
             onJumpToBates={handleJumpToBates}
             onUpdateCase={handleUpdateCase}
+          />
+        )}
+
+        {activeTab === 'presentation' && (
+          <PresentationViewer
+            currentCase={currentCase}
+            stance={stance}
+            onJumpToBates={handleJumpToBates}
           />
         )}
 

@@ -11,7 +11,8 @@ import {
   HelpCircle, 
   FolderPlus,
   Compass,
-  AlertTriangle
+  AlertTriangle,
+  Presentation
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -197,6 +198,18 @@ export const Header: React.FC<HeaderProps> = ({
         </button>
 
         <button
+          onClick={() => onSelectTab('presentation')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
+            activeTab === 'presentation'
+              ? 'bg-blue-600 text-white font-semibold shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
+          }`}
+        >
+          <Presentation className="w-3.5 h-3.5 text-blue-300" />
+          <span>6. 20-Slide PPT Presentation</span>
+        </button>
+
+        <button
           onClick={() => onSelectTab('export')}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ml-auto ${
             activeTab === 'export'
@@ -205,7 +218,7 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           <Printer className="w-3.5 h-3.5 text-cyan-400" />
-          <span>6. Formal Expert Report</span>
+          <span>7. Formal Court Report</span>
         </button>
       </div>
     </header>
