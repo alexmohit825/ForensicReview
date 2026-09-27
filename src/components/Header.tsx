@@ -79,79 +79,15 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Center: The Stance Pivot (Defense vs. Plaintiff Toggle) */}
-        <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 shadow-inner">
-          <button
-            onClick={() => onToggleStance('DEFENSE')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${
-              isDefense
-                ? 'bg-blue-600 text-white shadow-md shadow-blue-900/30'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <ShieldCheck className="w-4 h-4" />
-            <span>DEFENSE EXPERT</span>
-          </button>
-
-          <button
-            onClick={() => onToggleStance('PLAINTIFF')}
-            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${
-              !isDefense
-                ? 'bg-red-600 text-white shadow-md shadow-red-900/30'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <ShieldAlert className="w-4 h-4" />
-            <span>PLAINTIFF EXPERT</span>
-          </button>
+        {/* Center: Clean Active Case Badge */}
+        <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800 text-xs">
+          <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+          <span className="text-slate-400">Active Dossier:</span>
+          <span className="font-semibold text-slate-200">{caseName || 'New Case'}</span>
         </div>
 
-        {/* Right Actions: Case Management & Toggleable Guide */}
+        {/* Right Actions: Case Management */}
         <div className="flex items-center gap-2">
-          {/* Section Guide Trigger */}
-          <button
-            onClick={onToggleGuide}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-              isGuideOpen
-                ? 'bg-cyan-500/10 text-cyan-300 border-cyan-500/40 shadow-sm shadow-cyan-900/20'
-                : 'bg-slate-800/80 text-slate-300 border-slate-700 hover:bg-slate-750 hover:text-white'
-            }`}
-            title="Toggle Forensic Protocol & Legal Guide"
-          >
-            <HelpCircle className="w-4 h-4 text-cyan-400" />
-            <span>Forensic Guide</span>
-          </button>
-
-          {/* Similar Cases Vault Trigger */}
-          <button
-            onClick={onOpenSimilarCases}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-950/70 text-purple-300 border border-purple-800/80 hover:bg-purple-900 transition-colors shadow-sm"
-            title="Search Med-Mal Precedent Cases & Judicial Benchmarks"
-          >
-            <Gavel className="w-4 h-4 text-purple-400" />
-            <span>Similar Cases Vault</span>
-          </button>
-
-          {/* Case Directory Trigger */}
-          <button
-            onClick={onOpenCaseDirectory}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-cyan-950/70 text-cyan-300 border border-cyan-800/80 hover:bg-cyan-900 transition-colors shadow-sm"
-            title="Open Multi-Case Directory & Patient Archives"
-          >
-            <FolderOpen className="w-4 h-4 text-cyan-400" />
-            <span>Case Directory ({caseCount})</span>
-          </button>
-
-          {/* New Case Button */}
-          <button
-            onClick={onNewCase}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 border border-slate-700 hover:bg-slate-750 hover:text-white transition-colors"
-            title="Start Clean Ingestion for a New Case"
-          >
-            <FolderPlus className="w-4 h-4 text-slate-400" />
-            <span>New Case</span>
-          </button>
-
           {/* Load Quinonez Case (MVA Spine Causation) */}
           {onLoadQuinonez && (
             <button
@@ -175,105 +111,77 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Load Aortic Case</span>
             </button>
           )}
+
+          {/* Case Directory Trigger */}
+          <button
+            onClick={onOpenCaseDirectory}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800/80 text-slate-300 border border-slate-700 hover:bg-slate-750 transition-colors shadow-sm"
+            title="Open Multi-Case Directory & Patient Archives"
+          >
+            <FolderOpen className="w-4 h-4 text-cyan-400" />
+            <span>Case Directory ({caseCount})</span>
+          </button>
+
+          {/* New Case Button */}
+          <button
+            onClick={onNewCase}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800/80 text-slate-300 border border-slate-700 hover:bg-slate-750 hover:text-white transition-colors"
+            title="Start Clean Ingestion for a New Case"
+          >
+            <FolderPlus className="w-4 h-4 text-slate-400" />
+            <span>New Case</span>
+          </button>
         </div>
       </div>
 
-      {/* Primary Navigation Tabs */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-1 overflow-x-auto border-t border-slate-800/60 py-1.5 text-xs font-medium">
+      {/* Primary 4-Step Navigation Tabs */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center gap-2 border-t border-slate-800/60 py-2 text-xs font-semibold overflow-x-auto">
         <button
-          onClick={() => onSelectTab('ingestion')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
-            activeTab === 'ingestion'
-              ? 'bg-slate-800 text-cyan-300 font-semibold'
+          onClick={() => onSelectTab('records')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
+            activeTab === 'records' || activeTab === 'ingestion' || activeTab === 'synopsis'
+              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-950 font-bold'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
           }`}
         >
-          <FileText className="w-3.5 h-3.5" />
-          <span>1. Records & Ingestion</span>
+          <FolderOpen className="w-4 h-4" />
+          <span>1. Records & Summary</span>
         </button>
 
         <button
           onClick={() => onSelectTab('timeline')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
             activeTab === 'timeline'
-              ? 'bg-slate-800 text-cyan-300 font-semibold'
+              ? 'bg-cyan-600 text-white shadow-md shadow-cyan-950 font-bold'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
           }`}
         >
-          <LineChart className="w-3.5 h-3.5" />
-          <span>2. Directional Timeline & Arrows</span>
-        </button>
-
-        <button
-          onClick={() => onSelectTab('stance')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
-            activeTab === 'stance'
-              ? isDefense ? 'bg-blue-950/60 text-blue-300 font-semibold border border-blue-800/50' : 'bg-red-950/60 text-red-300 font-semibold border border-red-800/50'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
-          }`}
-        >
-          <Scale className="w-3.5 h-3.5" />
-          <span>3. {isDefense ? 'Defense Anchors & Judgment' : 'Plaintiff Breaches & Deviations'}</span>
-        </button>
-
-        <button
-          onClick={() => onSelectTab('synopsis')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
-            activeTab === 'synopsis'
-              ? 'bg-slate-800 text-cyan-300 font-semibold'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
-          }`}
-        >
-          <BookOpen className="w-3.5 h-3.5" />
-          <span>4. Case Synopsis & Chronology</span>
-        </button>
-
-        <button
-          onClick={() => onSelectTab('literature')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
-            activeTab === 'literature'
-              ? 'bg-slate-800 text-amber-300 font-semibold border border-amber-500/40'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
-          }`}
-        >
-          <Library className="w-3.5 h-3.5 text-amber-400" />
-          <span>5. Medical Literature & Guidelines</span>
-        </button>
-
-        <button
-          onClick={() => onSelectTab('deposition')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
-            activeTab === 'deposition'
-              ? 'bg-slate-800 text-cyan-300 font-semibold'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
-          }`}
-        >
-          <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-          <span>6. Deposition & Cross-Exam Prep</span>
+          <LineChart className="w-4 h-4" />
+          <span>2. Timeline of Events</span>
         </button>
 
         <button
           onClick={() => onSelectTab('presentation')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
             activeTab === 'presentation'
-              ? 'bg-blue-600 text-white font-semibold shadow-sm'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-950 font-bold'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
           }`}
         >
-          <Presentation className="w-3.5 h-3.5 text-blue-300" />
-          <span>7. Courtroom Presentation</span>
+          <Presentation className="w-4 h-4" />
+          <span>3. Presentation (PPT)</span>
         </button>
 
         <button
-          onClick={() => onSelectTab('export')}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ml-auto ${
-            activeTab === 'export'
-              ? 'bg-cyan-950/60 text-cyan-300 font-semibold border border-cyan-800/50'
+          onClick={() => onSelectTab('literature')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl transition-all whitespace-nowrap ${
+            activeTab === 'literature'
+              ? 'bg-amber-600 text-white shadow-md shadow-amber-950 font-bold'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
           }`}
         >
-          <Printer className="w-3.5 h-3.5 text-cyan-400" />
-          <span>8. Formal Court Report</span>
+          <Library className="w-4 h-4" />
+          <span>4. Reference Library</span>
         </button>
       </div>
     </header>

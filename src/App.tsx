@@ -1,22 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { CaseProfile, StanceMode, IngestedDocument, CaseArtifact, ClinicalMilestone } from './types/forensic';
 import { createEmptyCase, getBenchmarkTeachingCase, getQuinonezCaseProfile } from './utils/forensicAnalyzer';
-import { extractClinicalEntities } from './utils/pdfParser';
 import { exportToPowerPoint } from './utils/pptGenerator';
 import { Header } from './components/Header';
 import { SectionGuideDrawer } from './components/SectionGuideDrawer';
-import { DocumentManager } from './components/DocumentManager';
 import { GraphicTimeline } from './components/GraphicTimeline';
-import { StanceEvaluationView } from './components/StanceEvaluationView';
-import { ClinicalNarrative } from './components/ClinicalNarrative';
-import { DepositionPrepView } from './components/DepositionPrepView';
 import { PresentationViewer } from './components/PresentationViewer';
-import { ReportExportView } from './components/ReportExportView';
 import { DocumentViewerModal } from './components/DocumentViewerModal';
 import { CaseDirectoryModal } from './components/CaseDirectoryModal';
 import { LiteratureSearchTab } from './components/LiteratureSearchTab';
 import { SimilarCasesModal } from './components/SimilarCasesModal';
 import { AiNarrativeImportModal } from './components/AiNarrativeImportModal';
+import { RecordsAndSummaryView } from './components/RecordsAndSummaryView';
 import { synthesizeRecordsFromDocuments } from './utils/clinicalSynthesizer';
 
 const CASES_CATALOG_STORAGE_KEY = 'forensicreview_cases_catalog_v2';
@@ -51,9 +46,9 @@ export const App: React.FC = () => {
   // Current active case
   const currentCase = cases.find(c => c.id === activeCaseId) || cases[0] || createEmptyCase();
   const [stance, setStance] = useState<StanceMode>(currentCase.retainingSide || 'DEFENSE');
-  const [activeTab, setActiveTab] = useState<string>('ingestion');
+  const [activeTab, setActiveTab] = useState<string>('records');
   const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
-  const [guideSectionId, setGuideSectionId] = useState<string>('ingestion');
+  const [guideSectionId, setGuideSectionId] = useState<string>('records');
   const [isCaseDirectoryOpen, setIsCaseDirectoryOpen] = useState<boolean>(false);
   const [isSimilarCasesOpen, setIsSimilarCasesOpen] = useState<boolean>(false);
   const [isAiImportOpen, setIsAiImportOpen] = useState<boolean>(false);
@@ -112,7 +107,7 @@ export const App: React.FC = () => {
     if (target) {
       setStance(target.retainingSide);
     }
-    setActiveTab('ingestion');
+    setActiveTab('records');
   };
 
   // Create a brand new case
@@ -122,7 +117,7 @@ export const App: React.FC = () => {
     setCases(prev => [newCase, ...prev]);
     setActiveCaseId(newCase.id);
     setStance('DEFENSE');
-    setActiveTab('ingestion');
+    setActiveTab('records');
     setIsCaseDirectoryOpen(false);
   };
 
@@ -294,24 +289,26 @@ export const App: React.FC = () => {
       {/* Main Content Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         
-        {activeTab === 'ingestion' && (
-          <DocumentManager
+        {/* Step 1: Read, Organize & Summarize Records */}
+        {(activeTab === 'records' || activeTab === 'ingestion' || activeTab === 'synopsis') && (
+          <RecordsAndSummaryView
             currentCase={currentCase}
+            stance={stance}
             onUpdateCase={handleUpdateCase}
             onAnalyzeRecords={handleAnalyzeRecords}
             onSelectDocumentForView={(doc, page) => handleOpenDocViewer(doc, page || 1)}
-            onNavigateToPresentation={() => setActiveTab('presentation')}
             onNavigateToTimeline={() => setActiveTab('timeline')}
-            onNavigateToSynopsis={() => setActiveTab('synopsis')}
-            onNavigateToStance={() => setActiveTab('stance')}
+            onNavigateToPresentation={() => setActiveTab('presentation')}
             onNavigateToLiterature={() => setActiveTab('literature')}
             onOpenSimilarCases={() => setIsSimilarCasesOpen(true)}
             onOpenAiImport={() => setIsAiImportOpen(true)}
             onLoadQuinonez={handleLoadQuinonez}
             onLoadBenchmark={handleLoadBenchmark}
+            onOpenFullGuide={handleOpenFullGuide}
           />
         )}
 
+        {/* Step 2: Timeline of Events */}
         {activeTab === 'timeline' && (
           <GraphicTimeline
             currentCase={currentCase}
@@ -321,46 +318,7 @@ export const App: React.FC = () => {
           />
         )}
 
-        {activeTab === 'stance' && (
-          <StanceEvaluationView
-            currentCase={currentCase}
-            stance={stance}
-            onToggleStance={handleToggleStance}
-            onOpenFullGuide={() => handleOpenFullGuide('stance')}
-            onJumpToBates={handleJumpToBates}
-            onUpdateCase={handleUpdateCase}
-          />
-        )}
-
-        {activeTab === 'synopsis' && (
-          <ClinicalNarrative
-            currentCase={currentCase}
-            stance={stance}
-            onOpenFullGuide={() => handleOpenFullGuide('synopsis')}
-            onUpdateCase={handleUpdateCase}
-            onSynthesizeRecords={handleAnalyzeRecords}
-            onOpenAiImport={() => setIsAiImportOpen(true)}
-          />
-        )}
-
-        {activeTab === 'literature' && (
-          <LiteratureSearchTab
-            currentCase={currentCase}
-            stance={stance}
-            onOpenFullGuide={() => handleOpenFullGuide('literature')}
-          />
-        )}
-
-        {activeTab === 'deposition' && (
-          <DepositionPrepView
-            currentCase={currentCase}
-            stance={stance}
-            onOpenFullGuide={() => handleOpenFullGuide('deposition')}
-            onJumpToBates={handleJumpToBates}
-            onUpdateCase={handleUpdateCase}
-          />
-        )}
-
+        {/* Step 3: Presentation (PPT) */}
         {activeTab === 'presentation' && (
           <PresentationViewer
             currentCase={currentCase}
@@ -370,10 +328,12 @@ export const App: React.FC = () => {
           />
         )}
 
-        {activeTab === 'export' && (
-          <ReportExportView
+        {/* Step 4: Reference Library */}
+        {activeTab === 'literature' && (
+          <LiteratureSearchTab
             currentCase={currentCase}
             stance={stance}
+            onOpenFullGuide={() => handleOpenFullGuide('literature')}
           />
         )}
 
