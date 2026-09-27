@@ -31,6 +31,7 @@ interface HeaderProps {
   onOpenSimilarCases: () => void;
   caseCount: number;
   onLoadBenchmark: () => void;
+  onLoadQuinonez?: () => void;
   hasDocuments: boolean;
 }
 
@@ -47,6 +48,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenSimilarCases,
   caseCount,
   onLoadBenchmark,
+  onLoadQuinonez,
   hasDocuments
 }) => {
   const isDefense = stance === 'DEFENSE';
@@ -150,6 +152,18 @@ export const Header: React.FC<HeaderProps> = ({
             <span>New Case</span>
           </button>
 
+          {/* Load Quinonez Case (MVA Spine Causation) */}
+          {onLoadQuinonez && (
+            <button
+              onClick={onLoadQuinonez}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-950/80 text-emerald-300 border border-emerald-700/80 hover:bg-emerald-900 transition-colors shadow-sm"
+              title="Load Real Quinonez Spine Injury Case (Dates & Arrows Timeline, 10 Deposition Vectors, Literature Support)"
+            >
+              <Scale className="w-4 h-4 text-emerald-400" />
+              <span>Load Quinonez Case</span>
+            </button>
+          )}
+
           {/* Load Benchmark Case (Teaching File) */}
           {!hasDocuments && (
             <button
@@ -158,7 +172,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="Load Benchmark Reference Case (Thoracic Aortic Dissection)"
             >
               <Compass className="w-4 h-4 text-amber-400" />
-              <span>Load Reference Case</span>
+              <span>Load Aortic Case</span>
             </button>
           )}
         </div>

@@ -38,6 +38,8 @@ interface DocumentManagerProps {
   onNavigateToLiterature?: () => void;
   onOpenSimilarCases?: () => void;
   onOpenAiImport?: () => void;
+  onLoadQuinonez?: () => void;
+  onLoadBenchmark?: () => void;
 }
 
 export const DocumentManager: React.FC<DocumentManagerProps> = ({
@@ -51,7 +53,9 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
   onNavigateToStance,
   onNavigateToLiterature,
   onOpenSimilarCases,
-  onOpenAiImport
+  onOpenAiImport,
+  onLoadQuinonez,
+  onLoadBenchmark
 }) => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [processStatus, setProcessStatus] = useState<string>('');
@@ -528,6 +532,36 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
             <p className="text-[10px] text-slate-400 text-center mt-2">
               Updates multi-track hemodynamic chart, MAR timeline, and 20-slide presentation
             </p>
+
+            {currentCase.documents.length === 0 && (
+              <div className="mt-4 pt-3 border-t border-slate-800 space-y-2">
+                <span className="text-[11px] font-semibold text-slate-400 block text-center">
+                  Or load verified forensic case dossiers:
+                </span>
+                <div className="grid grid-cols-1 gap-2">
+                  {onLoadQuinonez && (
+                    <button
+                      type="button"
+                      onClick={onLoadQuinonez}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/70 text-emerald-300 text-xs font-semibold shadow-sm transition-colors text-center"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                      <span>Load Quinonez Case (MVA Spine Injury)</span>
+                    </button>
+                  )}
+                  {onLoadBenchmark && (
+                    <button
+                      type="button"
+                      onClick={onLoadBenchmark}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-amber-950/80 hover:bg-amber-900 border border-amber-700/70 text-amber-300 text-xs font-semibold shadow-sm transition-colors text-center"
+                    >
+                      <FileCheck className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
+                      <span>Load Aortic Dissection Reference Case</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

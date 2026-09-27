@@ -503,3 +503,567 @@ export function getBenchmarkTeachingCase(): CaseProfile {
     lastModified: new Date().toISOString()
   };
 }
+
+/**
+ * Real Landmark Personal Injury / Neurosurgical Causation Case
+ * Holly Quinonez (DOB: 05/21/1984) — Traumatic MVA "Lit-Up" Lumbar HNP & Cervical Radiculopathy
+ * Synthesizes Quin_summary, Quin_dep (10 defense challenges), and Quin_lit (Clark et al. 2020).
+ */
+export function getQuinonezCaseProfile(): CaseProfile {
+  const milestones: ClinicalMilestone[] = [
+    {
+      id: 'quin-ms-1',
+      timestamp: '2020-06-15T14:30:00Z',
+      timeDisplay: '14:30',
+      relativeTimeDelta: 'Traumatic Collision',
+      phase: 'PRE_ADMISSION',
+      category: 'ED_TRIAGE',
+      title: 'Motor Vehicle Collision: Rear-End Impact (~25 mph)',
+      provider: 'First Responders / Patient History',
+      providerRole: 'EMS',
+      facilityDepartment: 'Incident Scene',
+      summary: 'Restrained driver rear-ended at ~25 mph without braking while attempting to parallel park. Head turned to right and right arm behind passenger seat, causing severe asymmetric torsional loading across cervical and lumbosacral spine.',
+      verbatimQuote: '"She reported immediate-onset neck pain… continued neck pain, L shoulder/clavicle pain and R middle finger pain. All cervical movements are restricted and painful particularly turning to the R side."',
+      severity: 'caution',
+      pageNumber: 1,
+      batesNumber: 'REC-00001',
+      defenseFlag: {
+        isDefenseAnchor: true,
+        anchorCategory: 'DOCUMENTED_JUDGMENT',
+        argument: 'Contemporaneous immediate symptom onset establishes acute temporal relationship.'
+      },
+      plaintiffFlag: {
+        isBreach: false,
+        breachCategory: 'DELAY',
+        argument: 'Clear traumatic mechanism with asymmetric rotation causing disc shear.'
+      }
+    },
+    {
+      id: 'quin-ms-2',
+      timestamp: '2020-06-23T10:15:00Z',
+      timeDisplay: '10:15',
+      relativeTimeDelta: '+8 Days',
+      phase: 'DIAGNOSTIC_WORKUP',
+      category: 'PHYSICIAN_CONSULT',
+      title: 'Franciscan Medical Group: Acute Post-Collision Evaluation',
+      provider: 'Primary Care Physician',
+      providerRole: 'ATTENDING',
+      facilityDepartment: 'Outpatient Clinic',
+      summary: 'Immediate post-collision clinical examination documents acute neck pain, left clavicle tenderness, right middle finger swelling, tingling radiating down left arm, and severe limitation in cervical range of motion.',
+      verbatimQuote: '"She has mild tingling down her neck on the L side to her arm. Severely restricted cervical range of motion in all directions with L sided neck pain."',
+      severity: 'normal',
+      pageNumber: 5,
+      batesNumber: 'REC-00005',
+      defenseFlag: {
+        isDefenseAnchor: true,
+        anchorCategory: 'DOCUMENTED_JUDGMENT',
+        argument: 'Confirms acute cervical strain with objective radicular features within one week of collision.'
+      },
+      plaintiffFlag: {
+        isBreach: false,
+        breachCategory: 'COMMUNICATION',
+        argument: 'Objective radicular deficits documented contemporaneously with no prior history.'
+      }
+    },
+    {
+      id: 'quin-ms-3',
+      timestamp: '2021-11-29T11:00:00Z',
+      timeDisplay: '11:00',
+      relativeTimeDelta: '+1y 5m',
+      phase: 'CRITICAL_WINDOW',
+      category: 'SURGICAL_OR',
+      title: 'Genesis Interventional Spine: L5-S1 Interlaminar ESI & MBBs',
+      provider: 'Interventional Pain Physician',
+      providerRole: 'CONSULTANT',
+      facilityDepartment: 'Interventional Spine Suite',
+      summary: 'Patient underwent extensive conservative therapy (PT, chiropractic, massage, NSAIDs, muscle relaxants) followed by fluoroscopically-guided L5-S1 ESI and facet MBBs.',
+      verbatimQuote: '"She reports having 2 weeks of relief… but pain returned to baseline. Pain prevents her from sitting longer than 10 minutes."',
+      severity: 'caution',
+      pageNumber: 18,
+      batesNumber: 'REC-00018',
+      defenseFlag: {
+        isDefenseAnchor: true,
+        anchorCategory: 'COMPLICATION_MANAGEMENT',
+        argument: 'Temporary relief confirms accurate target localization and proves the structural pain generator.'
+      },
+      plaintiffFlag: {
+        isBreach: false,
+        breachCategory: 'DELAY',
+        argument: 'Short-lived steroid response confirms unyielding mechanical nerve root compression.'
+      }
+    },
+    {
+      id: 'quin-ms-4',
+      timestamp: '2022-11-08T09:30:00Z',
+      timeDisplay: '09:30',
+      relativeTimeDelta: '+11 Months',
+      phase: 'DIAGNOSTIC_WORKUP',
+      category: 'LAB_CRITICAL',
+      title: 'EMA Electrodiagnostic Study: Confirmed Right L5 Radiculopathy',
+      provider: 'Electromyographer / Neurologist',
+      providerRole: 'CONSULTANT',
+      facilityDepartment: 'Neurophysiology Lab',
+      summary: 'Comprehensive Nerve Conduction Studies and Needle Electromyography (NCS/EMG) perform objective electrophysiological assessment of lower extremities.',
+      verbatimQuote: '"Abnormal study. Right subacute L5 radiculopathy. No evidence of left radiculopathy or peripheral neuropathy."',
+      severity: 'critical',
+      pageNumber: 24,
+      batesNumber: 'REC-00024',
+      defenseFlag: {
+        isDefenseAnchor: true,
+        anchorCategory: 'DOCUMENTED_JUDGMENT',
+        argument: 'Objective, independent neurophysiologic corroboration of right L5 root impairment.'
+      },
+      plaintiffFlag: {
+        isBreach: false,
+        breachCategory: 'MISDIAGNOSIS',
+        argument: 'Disproves defense claim of subjective symptom exaggeration or non-organic etiology.'
+      }
+    },
+    {
+      id: 'quin-ms-5',
+      timestamp: '2023-02-07T08:45:00Z',
+      timeDisplay: '08:45',
+      relativeTimeDelta: '+3 Months',
+      phase: 'DIAGNOSTIC_WORKUP',
+      category: 'IMAGING',
+      title: 'TRA Medical Imaging: Lumbar Spine MRI (L5-S1 Disc Protrusion)',
+      provider: 'Staff Radiologist',
+      providerRole: 'CONSULTANT',
+      facilityDepartment: 'Diagnostic Radiology',
+      summary: 'High-field MRI of the lumbar spine reveals small right-sided L5-S1 posterolateral/foraminal disc protrusion with direct impingement of the right L5 nerve root.',
+      verbatimQuote: '"Small right-sided L5–S1 posterolateral/foraminal disc protrusion. This results in impingement of the right L5 nerve root. Moderate right and mild left neuroforaminal stenosis at L5–S1."',
+      severity: 'caution',
+      pageNumber: 31,
+      batesNumber: 'REC-00031',
+      defenseFlag: {
+        isDefenseAnchor: true,
+        anchorCategory: 'DOCUMENTED_JUDGMENT',
+        argument: 'Direct anatomical correlation between MRI nerve root impingement and EMG radiculopathy.'
+      },
+      plaintiffFlag: {
+        isBreach: false,
+        breachCategory: 'DOCUMENTATION_GAP',
+        argument: 'Objective nerve root contact satisfies definitive surgical indication criteria.'
+      }
+    },
+    {
+      id: 'quin-ms-6',
+      timestamp: '2023-02-07T09:15:00Z',
+      timeDisplay: '09:15',
+      relativeTimeDelta: '+30 Minutes',
+      phase: 'DIAGNOSTIC_WORKUP',
+      category: 'IMAGING',
+      title: 'TRA Medical Imaging: Cervical Spine MRI (Foraminal Stenosis)',
+      provider: 'Staff Radiologist',
+      providerRole: 'CONSULTANT',
+      facilityDepartment: 'Diagnostic Radiology',
+      summary: 'Concurrent cervical spine MRI reveals multi-level degenerative disc disease and facet arthropathy with severe right C3-C4 and moderate C5-C6 foraminal stenosis.',
+      verbatimQuote: '"Severe neuroforaminal stenosis at the right C3–C4 level. Moderate right C5–C6 neuroforaminal stenosis. Degenerative disc disease and facet arthropathy."',
+      severity: 'caution',
+      pageNumber: 33,
+      batesNumber: 'REC-00033',
+      defenseFlag: {
+        isDefenseAnchor: true,
+        anchorCategory: 'DOCUMENTED_JUDGMENT',
+        argument: 'Pre-existing asymptomatic stenosis rendered symptomatic ("lit up") by torsional collision force.'
+      },
+      plaintiffFlag: {
+        isBreach: false,
+        breachCategory: 'DOCUMENTATION_GAP',
+        argument: 'Zero pre-collision cervical treatment across 7 years of prior records.'
+      }
+    },
+    {
+      id: 'quin-ms-7',
+      timestamp: '2023-04-19T13:00:00Z',
+      timeDisplay: '13:00',
+      relativeTimeDelta: '+2 Months',
+      phase: 'CRITICAL_WINDOW',
+      category: 'PHYSICIAN_CONSULT',
+      title: 'NeoSpine Comprehensive Neurosurgical Consult (Dr. Alex Mohit)',
+      provider: 'Dr. A. Alex Mohit (Board-Certified Neurosurgeon)',
+      providerRole: 'ATTENDING',
+      facilityDepartment: 'Neurosurgery Outpatient Clinic',
+      summary: 'Comprehensive neurosurgical evaluation by Dr. Alex Mohit. Patient reports chronic low back pain radiating into right hip, anterior thigh, and foot arch, with severe functional limitations (sitting < 10 mins). Confirms lumbar HNP at L5-S1 and cervical spondylosis with radiculopathy failing 3 years of structured nonoperative care.',
+      verbatimQuote: '"She gets sharp stabbing pain in her neck with rotation… shooting pain down her spine with flexion. She feels weakness in her right anterior thigh and tingling in her right foot at her arch."',
+      severity: 'normal',
+      pageNumber: 42,
+      batesNumber: 'REC-00042',
+      defenseFlag: {
+        isDefenseAnchor: true,
+        anchorCategory: 'DOCUMENTED_JUDGMENT',
+        argument: 'Treatment decisions predicated strictly on objective neurological findings and clinical failure.'
+      },
+      plaintiffFlag: {
+        isBreach: false,
+        breachCategory: 'DELAY',
+        argument: 'Nonoperative care properly exhausted over 34 months before surgical recommendation.'
+      }
+    },
+    {
+      id: 'quin-ms-8',
+      timestamp: '2023-05-18T10:30:00Z',
+      timeDisplay: '10:30',
+      relativeTimeDelta: '+1 Month',
+      phase: 'CRITICAL_WINDOW',
+      category: 'SURGICAL_OR',
+      title: 'NeoSpine Right L5-S1 Transforaminal ESI (Diagnostic Pinpointing)',
+      provider: 'NeoSpine Interventional Team',
+      providerRole: 'CONSULTANT',
+      facilityDepartment: 'Procedure Suite',
+      summary: 'Targeted right L5-S1 transforaminal epidural steroid injection performed. Confirms temporary relief of concordant radicular symptoms, definitively establishing the L5 nerve root as the primary surgical pain generator.',
+      verbatimQuote: '"Targeted right L5–S1 TFESI performed under fluoroscopy. Patient experienced temporary concordant relief, confirming pain generator."',
+      severity: 'normal',
+      pageNumber: 47,
+      batesNumber: 'REC-00047',
+      defenseFlag: {
+        isDefenseAnchor: true,
+        anchorCategory: 'COMPLICATION_MANAGEMENT',
+        argument: 'Confirms structural target before proceeding with operative discectomy.'
+      },
+      plaintiffFlag: {
+        isBreach: false,
+        breachCategory: 'COMMUNICATION',
+        argument: 'Diagnostic precision complies with gold-standard spine surgical workup.'
+      }
+    },
+    {
+      id: 'quin-ms-9',
+      timestamp: '2023-06-21T14:00:00Z',
+      timeDisplay: '14:00',
+      relativeTimeDelta: '+1 Month',
+      phase: 'OPERATIVE_OR',
+      category: 'PHYSICIAN_CONSULT',
+      title: 'NeoSpine Definitive Surgical Recommendation (Dr. Alex Mohit)',
+      provider: 'Dr. A. Alex Mohit (Board-Certified Neurosurgeon)',
+      providerRole: 'ATTENDING',
+      facilityDepartment: 'Neurosurgery Outpatient Clinic',
+      summary: 'Following return of disabling radicular pain, Dr. Mohit reviews surgical indications with patient. Recommends right L5-S1 lumbar microdiscectomy and C5-C6 cervical disc replacement. Patient consents to intervention.',
+      verbatimQuote: '"She understands all these issues and would like to go ahead with a right-sided L5–S1 lumbar microdiscectomy and C5–6 disc replacement."',
+      severity: 'caution',
+      pageNumber: 52,
+      batesNumber: 'REC-00052',
+      defenseFlag: {
+        isDefenseAnchor: true,
+        anchorCategory: 'INFORMED_CONSENT',
+        argument: 'Evidence-based surgery supported by Clark et al. 2020 and EANS disc herniation guidelines.'
+      },
+      plaintiffFlag: {
+        isBreach: false,
+        breachCategory: 'SURGICAL_ERROR',
+        argument: 'Surgery is medically reasonable, necessary, and proximately caused by the 6/15/2020 collision.'
+      }
+    }
+  ];
+
+  const depositionPrep: DepositionQuestion[] = [
+    {
+      id: 'quin-dep-1',
+      targetedVulnerability: 'Preexisting / degenerative conditions not caused by the collision',
+      hostileQuestion: 'Doctor, isn’t it true that lumbar spondylosis and foraminal stenosis are chronic degenerative conditions that existed long before June 15, 2020?',
+      advisableResponseStrategy: 'Emphasize that the patient was completely asymptomatic prior to collision across 7 years of records (2013-2020). The collision activated ("lit up") previously silent pathology. Rear-end impact at 25 mph while twisted produced asymmetric disc shear.',
+      supportingChartCitations: ['REC-00001 (Franciscan Initial Note)', 'REC-00031 (TRA Lumbar MRI)', 'REC-00024 (EMA EMG)'],
+      stanceContext: 'PLAINTIFF'
+    },
+    {
+      id: 'quin-dep-2',
+      targetedVulnerability: 'Subjective pain complaints and alleged symptom exaggeration',
+      hostileQuestion: 'Doctor, aren’t you relying entirely on Ms. Quinonez’s subjective complaints of pain, which could easily be exaggerated for litigation?',
+      advisableResponseStrategy: 'Counter that opinions are grounded in objective triad: 1) MRI showing right L5 nerve root impingement, 2) EMG proving right subacute L5 radiculopathy, and 3) anatomical dermatomal concordance across 3+ years.',
+      supportingChartCitations: ['REC-00024 (EMA EMG: Abnormal Right L5 radiculopathy)', 'REC-00031 (TRA MRI: nerve root impingement)'],
+      stanceContext: 'PLAINTIFF'
+    },
+    {
+      id: 'quin-dep-3',
+      targetedVulnerability: 'Small size of disc protrusion on MRI',
+      hostileQuestion: 'The radiologist specifically characterized the L5-S1 protrusion as "small." Doesn’t a small protrusion rule out surgical necessity?',
+      advisableResponseStrategy: 'Size does not determine clinical significance—nerve root contact and functional impairment do. The MRI explicitly stated "results in impingement of the right L5 nerve root," and EMG confirmed functional nerve injury.',
+      supportingChartCitations: ['REC-00031 (TRA Lumbar MRI)', 'REC-00024 (EMA EMG)'],
+      stanceContext: 'PLAINTIFF'
+    },
+    {
+      id: 'quin-dep-4',
+      targetedVulnerability: 'Degenerative cervical foraminal stenosis',
+      hostileQuestion: 'Isn’t cervical foraminal stenosis simply age-related wear-and-tear having nothing to do with a car accident?',
+      advisableResponseStrategy: 'She had immediate cervical symptoms documented on 6/23/2020. The collision mechanism (rear-end while head rotated to right) is classic for cervical facet and foraminal shear. Degeneration does not preclude traumatic activation.',
+      supportingChartCitations: ['REC-00005 (Franciscan 6/23/2020)', 'REC-00033 (TRA Cervical MRI)'],
+      stanceContext: 'PLAINTIFF'
+    },
+    {
+      id: 'quin-dep-5',
+      targetedVulnerability: 'Temporary relief with injections used to argue surgery is unnecessary',
+      hostileQuestion: 'If Ms. Quinonez got relief from her injections, why wouldn’t you just continue with non-surgical conservative injections?',
+      advisableResponseStrategy: 'Temporary 2-week relief definitively confirms the anatomical pain generator, but its short duration proves structural mechanical nerve compression rather than reversible inflammation. After 3 years of failed conservative care, surgery is the guideline-concordant standard.',
+      supportingChartCitations: ['REC-00018 (Genesis ESI)', 'REC-00047 (NeoSpine TFESI)', 'Clark et al. J Gen Intern Med 2020'],
+      stanceContext: 'PLAINTIFF'
+    },
+    {
+      id: 'quin-dep-6',
+      targetedVulnerability: 'Widespread symptoms (headaches, foot swelling, sleep disturbance)',
+      hostileQuestion: 'Doctor, aren’t her headaches, ocular migraines, and foot swelling completely unrelated to a lumbar disc herniation?',
+      advisableResponseStrategy: 'Chronic spine pain syndromes produce well-documented secondary cascades: cervical pathology causes cervicogenic headaches, while antalgic gait from L5 radiculopathy causes asymmetric lower-extremity stress and kinetic chain dysfunction.',
+      supportingChartCitations: ['REC-00042 (NeoSpine Consult)', 'REC-00005 (Franciscan Initial Note)'],
+      stanceContext: 'PLAINTIFF'
+    },
+    {
+      id: 'quin-dep-7',
+      targetedVulnerability: 'Low-speed 25 mph collision with no immediate ER visit',
+      hostileQuestion: 'This was a minor 25 mph collision where she didn’t even go to the Emergency Room. How can you claim it caused severe spine injuries?',
+      advisableResponseStrategy: 'She was twisted to the right with her arm behind the passenger seat, drastically multiplying torsional disc loading. Spine soft-tissue and disc injuries frequently evolve over 24-72 hours as inflammatory cascades develop.',
+      supportingChartCitations: ['REC-00001 (Collision Narrative)', 'REC-00005 (Franciscan 6/23/2020)'],
+      stanceContext: 'PLAINTIFF'
+    },
+    {
+      id: 'quin-dep-8',
+      targetedVulnerability: 'Reliance on patient self-reporting',
+      hostileQuestion: 'Doctor, how can you be sure she didn’t have back pain before June 2020 when you weren’t her doctor back then?',
+      advisableResponseStrategy: 'Exhaustive review of MultiCare, CHI Franciscan, and Franciscan Medical Group records spanning 2013 to 2020 confirms zero prior complaints, zero work restrictions, and zero treatment for cervical or lumbar radiculopathy.',
+      supportingChartCitations: ['Prior Medical Records 2013-2020 Audit (Exhibit B)'],
+      stanceContext: 'PLAINTIFF'
+    },
+    {
+      id: 'quin-dep-9',
+      targetedVulnerability: 'Causation standard ("More probable than not")',
+      hostileQuestion: 'Isn’t it merely speculative to say the car accident caused this specific disc herniation 3 years later?',
+      advisableResponseStrategy: 'Causation is grounded in the legal standard of reasonable medical probability (>50%): acute symptom onset, bio-mechanically concordant torsional mechanism, objective imaging and EMG verification, and continuous 3-year treatment bridge.',
+      supportingChartCitations: ['REC-00001', 'REC-00024', 'REC-00031', 'REC-00052'],
+      stanceContext: 'PLAINTIFF'
+    },
+    {
+      id: 'quin-dep-10',
+      targetedVulnerability: 'Excessive surgical recommendation (Microdiscectomy & Disc Replacement)',
+      hostileQuestion: 'Isn’t recommending both a lumbar microdiscectomy and a cervical disc replacement excessive and aggressive for this patient?',
+      advisableResponseStrategy: 'Both procedures are standard of care after documented exhaustion of 34 months of conservative therapy (PT, chiropractic, medications, MBBs, TFESI) in a patient with progressive neurological impairment unable to sit >10 minutes.',
+      supportingChartCitations: ['Clark et al. J Gen Intern Med 2020', 'EANS Lumbar Disc Guidelines', 'REC-00052'],
+      stanceContext: 'PLAINTIFF'
+    }
+  ];
+
+  const synopsisNarrative = `MEDICAL SYNOPSIS & CAUSATION SUPPORT
+Comprehensive synthesis of medical records and declarations for Holly Quinonez (DOB: 05/21/1984)
+
+1. BACKGROUND AND COLLISION SUMMARY
+On June 15, 2020, Ms. Quinonez was a restrained driver who was rear-ended while attempting to parallel park. Her head was turned to the right and her right arm was behind the passenger seat. The striking vehicle impacted her at approximately 25 mph without braking, causing immediate symptoms.
+Quoted record evidence:
+“She reported immediate-onset neck pain… continued neck pain, L shoulder/clavicle pain and R middle finger pain.” “All cervical movements are restricted and painful particularly turning to the R side.”
+These acute findings establish a clear temporal relationship between the collision and the onset of cervical and upper-extremity symptoms.
+
+2. EARLY POST-COLLISION FINDINGS (JUNE 2020)
+Franciscan Medical Group – 6/23/2020
+• Immediate neck pain, left clavicle pain, right finger swelling
+• Tingling radiating down the neck into the arm
+• Severe restriction of cervical ROM
+• Pain with cervical flexion and right rotation
+• Difficulty grasping and lifting
+Quoted record evidence:
+“She has mild tingling down her neck on the L side to her arm.” “Severely restricted cervical range of motion in all directions with L sided neck pain.”
+These findings support acute cervical strain with radicular features.
+
+3. PERSISTENT SYMPTOMS (2020–2023)
+Across MultiCare, Genesis, and NeoSpine records, Ms. Quinonez consistently reported:
+• Chronic low back pain radiating into right hip, anterior thigh, and knee
+• Tingling in right foot arch
+• Neck pain with rotation; shooting pain down spine with flexion
+• Daily headaches and ocular migraines
+• Functional incapacity: inability to sit longer than 10 minutes
+Quoted record evidence:
+“Pain prevents her from sitting longer than 10 minutes.” “She gets sharp stabbing pain in her neck with rotation… shooting pain down her spine with flexion.” “She feels weakness in her right anterior thigh and tingling in her right foot at her arch.”
+
+4. OBJECTIVE IMAGING FINDINGS
+TRA MRI – 2/7/2023 (Lumbar Spine)
+• Small right-sided L5–S1 posterolateral/foraminal disc protrusion
+• Direct impingement of the right L5 nerve root
+• Moderate right and mild left neuroforaminal stenosis at L5–S1
+Quoted record evidence: “This results in impingement of the right L5 nerve root.”
+
+TRA MRI – 2/7/2023 (Cervical Spine)
+• Degenerative disc disease and facet arthropathy
+• Severe right C3–C4 neuroforaminal stenosis
+• Moderate right C5–C6 neuroforaminal stenosis
+Quoted record evidence: “Severe neuroforaminal stenosis at the right C3–C4 level.”
+
+5. ELECTRODIAGNOSTIC FINDINGS
+EMA NCS/EMG – 11/8/2022
+• Abnormal study confirming Right subacute L5 radiculopathy
+• Zero evidence of left radiculopathy or peripheral neuropathy
+Quoted record evidence: “Abnormal study. Right subacute L5 radiculopathy.”
+This provides objective electrophysiologic confirmation of lumbar nerve root compression matching the L5–S1 disc protrusion.
+
+6. TREATMENT COURSE AND FAILED CONSERVATIVE CARE
+Ms. Quinonez underwent extensive nonoperative management:
+• Physical therapy, chiropractic care, and massage therapy
+• NSAIDs and muscle relaxants
+• Multiple facet medial branch blocks (Genesis)
+• L5–S1 interlaminar ESI (Genesis, 11/29/21)
+• Right L5–S1 transforaminal ESI (NeoSpine, 5/18/23)
+Quoted record evidence: “She reports having 2 weeks of relief… but pain returned to baseline.”
+This demonstrates temporary steroid response confirming the anatomical target, but persistent mechanical structural pathology.
+
+7. SPECIALIST EVALUATION AND SURGICAL RECOMMENDATION
+NeoSpine – Dr. A. Alex Mohit (4/19/23 and 6/21/23)
+Clinical Findings: Lumbar HNP at L5–S1, lumbar spondylosis, cervical spondylosis with radiculopathy, persistent radicular symptoms despite 3 years of nonoperative care.
+Surgical Recommendations: Right L5–S1 lumbar microdiscectomy and C5–6 disc replacement.
+Quoted record evidence: “She understands all these issues and would like to go ahead with a right-sided L5–S1 lumbar microdiscectomy and C5–6 disc replacement.”
+
+8. SUPPORT FOR CAUSATION OPINIONS (DECLARATIONS)
+My declarations state that the following conditions were previously asymptomatic and were caused or “lit up” by the June 15, 2020 collision:
+1. L5–S1 herniated disc with radiculopathy
+2. Cervical spondylosis with radiculopathy
+3. Lumbar spondylosis
+Record support for previously asymptomatic status: 7 years of prior records (2013–2020) show zero prior cervical or lumbar radiculopathy, zero disc herniation, and zero chronic spine pain.
+Record support for collision causation: Immediate onset of cervical symptoms, progressive concordant lumbar radiculopathy, objective MRI impingement, EMG radiculopathy, and failure of conservative management.
+
+9. PEER-REVIEWED MEDICAL LITERATURE SUPPORT
+Clark R et al. Surgical Management of Lumbar Radiculopathy: A Systematic Review. J Gen Intern Med. 2020;35(3):855–864: Confirms that surgery for lumbar radiculopathy produces superior short-to-medium-term pain relief and functional improvement compared to nonsurgical care in patients with persistent radicular symptoms and concordant imaging.
+European Association of Neurosurgical Societies (EANS) Disc Herniation Guidelines: Affirms surgical decompression as standard of care for persistent, disabling radicular pain with imaging correlation after failure of 6-12 weeks of nonoperative therapy.`;
+
+  return {
+    id: 'case-quinonez-mva',
+    caseName: 'Quinonez v. Striking Driver (MVA Spine Injury)',
+    caseNumber: '23-2-08941-WA',
+    courtJurisdiction: 'Superior Court of Washington, Pierce County',
+    patientName: 'Holly Quinonez',
+    patientAge: 36,
+    patientSex: 'Female',
+    retainingCounsel: 'Williamson & Mercer, PLLC',
+    lawFirm: 'Pacific Northwest Injury Law Group',
+    retainingSide: 'PLAINTIFF',
+    dateOfIncident: '2020-06-15',
+    allegationsSummary: 'Motor vehicle collision on 06/15/2020 caused previously asymptomatic cervical and lumbar pathology to become acutely symptomatic ("lit up"), resulting in right L5-S1 disc protrusion with L5 radiculopathy and cervical foraminal stenosis requiring surgical decompression.',
+    documents: [
+      {
+        id: 'doc-quin-1',
+        fileName: 'Franciscan_Medical_Group_Initial_Encounter.pdf',
+        fileSize: 1840000,
+        fileType: 'application/pdf',
+        uploadedAt: '2020-06-24T09:00:00Z',
+        pageCount: 12,
+        batesPrefix: 'REC-',
+        batesStartNumber: 1,
+        batesEndNumber: 12,
+        rawTextByPage: [
+          { page: 1, bates: 'REC-00001', text: 'MVA 6/15/2020: Restrained driver rear-ended at 25mph while turned right to parallel park. Immediate neck pain, L shoulder/clavicle, R middle finger pain.' },
+          { page: 5, bates: 'REC-00005', text: 'Franciscan 6/23/20: Severely restricted cervical ROM in all directions. Tingling down neck on L side to arm.' }
+        ]
+      },
+      {
+        id: 'doc-quin-2',
+        fileName: 'TRA_MRI_Lumbar_and_Cervical_Reports.pdf',
+        fileSize: 2450000,
+        fileType: 'application/pdf',
+        uploadedAt: '2023-02-08T10:00:00Z',
+        pageCount: 16,
+        batesPrefix: 'REC-',
+        batesStartNumber: 13,
+        batesEndNumber: 28,
+        rawTextByPage: [
+          { page: 24, bates: 'REC-00024', text: 'EMA EMG 11/8/2022: Abnormal study. Right subacute L5 radiculopathy.' },
+          { page: 31, bates: 'REC-00031', text: 'TRA Lumbar MRI 2/7/2023: Small right-sided L5-S1 disc protrusion impinging right L5 nerve root. Moderate foraminal stenosis.' },
+          { page: 33, bates: 'REC-00033', text: 'TRA Cervical MRI 2/7/2023: Severe right C3-C4 and moderate right C5-C6 neuroforaminal stenosis.' }
+        ]
+      },
+      {
+        id: 'doc-quin-3',
+        fileName: 'NeoSpine_Dr_Alex_Mohit_Clinic_Notes.pdf',
+        fileSize: 3100000,
+        fileType: 'application/pdf',
+        uploadedAt: '2023-06-22T11:00:00Z',
+        pageCount: 24,
+        batesPrefix: 'REC-',
+        batesStartNumber: 29,
+        batesEndNumber: 52,
+        rawTextByPage: [
+          { page: 42, bates: 'REC-00042', text: 'NeoSpine Consult 4/19/2023: Failed 3 years conservative therapy. Weakness right anterior thigh, foot tingling, cannot sit >10 mins.' },
+          { page: 47, bates: 'REC-00047', text: 'NeoSpine TFESI 5/18/2023: Targeted R L5-S1 injection confirms pain generator.' },
+          { page: 52, bates: 'REC-00052', text: 'NeoSpine Surgical Plan 6/21/2023: Recommended right L5-S1 microdiscectomy and C5-C6 disc replacement.' }
+        ]
+      }
+    ],
+    vitals: [
+      {
+        id: 'quin-vit-1',
+        timestamp: '2020-06-23T10:15:00Z',
+        timeDisplay: '10:15',
+        sbp: 122,
+        dbp: 78,
+        map: 93,
+        hr: 72,
+        providerNote: 'Franciscan Initial Encounter: Normal baseline vitals, severe cervical distress on exam.',
+        pageNumber: 5,
+        batesNumber: 'REC-00005'
+      }
+    ],
+    medications: [
+      {
+        id: 'quin-med-1',
+        drugName: 'Cyclobenzaprine (Flexeril)',
+        dose: '10 mg PO TID PRN',
+        route: 'Oral',
+        startTimestamp: '2020-06-23T10:15:00Z',
+        administeredBy: 'Prescribing Physician',
+        status: 'administered',
+        pageNumber: 5,
+        batesNumber: 'REC-00005',
+        indicationNotes: 'Acute cervical muscular spasm post-MVA.'
+      },
+      {
+        id: 'quin-med-2',
+        drugName: 'Methylprednisolone (Medrol Dosepak)',
+        dose: '4 mg Dosepak',
+        route: 'Oral',
+        startTimestamp: '2021-11-29T11:00:00Z',
+        administeredBy: 'Interventional Clinic',
+        status: 'administered',
+        pageNumber: 18,
+        batesNumber: 'REC-00018',
+        indicationNotes: 'Acute radiculopathy anti-inflammatory pulse.'
+      }
+    ],
+    milestones,
+    plaintiffBreaches: [
+      {
+        id: 'quin-br-1',
+        title: 'Traumatic Disc Disruption via Collision Force',
+        allegation: 'Striking vehicle impacted stopped vehicle at 25 mph without braking, imposing torsional axial shear that ruptured the L5-S1 annulus and activated dormant cervical stenosis.',
+        standardOfCareRule: 'Drivers owe a duty of reasonable care to maintain safe following distance and avoid rear-end collisions.',
+        deviationEvidence: 'Police traffic collision report and vehicle damage photos confirm rear-end impact without pre-impact braking while plaintiff was rotated to right.',
+        proximateCausationAnalysis: 'More likely than not, the collision was the direct proximate cause converting an asymptomatic 36-year-old spine into a chronic, disabling surgical condition.',
+        contributingProviders: ['Striking Motorist (Defendant)'],
+        batesCitations: ['REC-00001', 'REC-00005', 'REC-00031'],
+        severity: 'CRITICAL_BREACH'
+      }
+    ],
+    defenseAnchors: [
+      {
+        id: 'quin-anc-1',
+        title: 'Prior Asymptomatic Status Across 7-Year Pre-Collision Audit',
+        defenseTheme: '"Lit up" traumatic aggravation of non-disabling anatomical variation.',
+        clinicalRational: 'Pre-existing asymptomatic degenerative disc disease does not preclude traumatic injury. MultiCare and Franciscan records (2013-2020) prove zero prior spine complaints or limitations.',
+        complianceWithGuidelines: 'Complies with Washington Pattern Jury Instruction 30.17 (Eggshell Skull / Aggravation of Preexisting Condition).',
+        preExistingConfounders: 'Underlying silent radiographic stenosis existed, but was rendered acutely symptomatic by rotational shear forces.',
+        supportingDocumentation: 'Complete absence of pre-collision cervical or lumbar treatment across 7 years of prior healthcare records.',
+        batesCitations: ['Prior Medical Records 2013-2020 (Exhibit B)'],
+        strength: 'IRONCLAD'
+      }
+    ],
+    synopsisExecutive: 'Matter of Holly Quinonez: Restrained 36-year-old driver rear-ended at 25 mph on 06/15/2020 while parallel parking with head turned right. Developed immediate cervical strain and progressive right L5 radiculopathy. Objective TRA MRI confirms L5-S1 disc protrusion impinging right L5 nerve root and severe C3-C4/C5-C6 foraminal stenosis; EMA EMG confirms right subacute L5 radiculopathy. Following failed 3-year conservative trial (PT, chiropractic, MBBs, TFESI), surgical recommendations for L5-S1 microdiscectomy and C5-C6 disc replacement are medically necessary, evidence-based (Clark et al. 2020), and causally related.',
+    synopsisNarrative,
+    standardOfCareDetermination: 'MET',
+    causationOpinion: 'Within a reasonable degree of medical probability, the June 15, 2020 collision caused previously asymptomatic cervical and lumbar pathology to become acutely symptomatic ("lit up"). The patient’s persistent radicular symptoms are corroborated by objective MRI nerve root impingement, objective EMG radiculopathy, and concordant TFESI relief. Surgical intervention is medically reasonable, necessary, and related to the collision.',
+    depositionPrep,
+    generatedArtifacts: [
+      {
+        id: 'art-quin-1',
+        title: '20-Slide Forensic Courtroom Presentation (Quinonez Spine Causation)',
+        type: 'PPTX_PRESENTATION',
+        fileName: 'ForensicReview_Quinonez_Spine_Injury_20Slide_Deck.pptx',
+        createdAt: new Date().toISOString(),
+        fileSize: '1.4 MB',
+        description: 'Complete 20-slide courtroom presentation with 3-year timeline, MRI nerve root impingement, EMG correlation, and 10 defense attack disproofs.',
+        pageCountOrSlides: 20
+      }
+    ],
+    lastModified: new Date().toISOString()
+  };
+}
+

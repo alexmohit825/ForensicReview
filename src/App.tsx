@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { CaseProfile, StanceMode, IngestedDocument, CaseArtifact, ClinicalMilestone } from './types/forensic';
-import { createEmptyCase, getBenchmarkTeachingCase } from './utils/forensicAnalyzer';
+import { createEmptyCase, getBenchmarkTeachingCase, getQuinonezCaseProfile } from './utils/forensicAnalyzer';
 import { extractClinicalEntities } from './utils/pdfParser';
 import { exportToPowerPoint } from './utils/pptGenerator';
 import { Header } from './components/Header';
@@ -172,6 +172,15 @@ export const App: React.FC = () => {
     setActiveTab('timeline');
   };
 
+  // Load Holly Quinonez real case into catalog
+  const handleLoadQuinonez = () => {
+    const quinonez = getQuinonezCaseProfile();
+    setCases(prev => [quinonez, ...prev.filter(c => c.id !== quinonez.id)]);
+    setActiveCaseId(quinonez.id);
+    setStance(quinonez.retainingSide);
+    setActiveTab('timeline');
+  };
+
   // Run deep clinical synthesis on ingested records
   const handleAnalyzeRecords = () => {
     if (currentCase.documents.length === 0) return;
@@ -278,6 +287,7 @@ export const App: React.FC = () => {
         onOpenSimilarCases={() => setIsSimilarCasesOpen(true)}
         caseCount={cases.length}
         onLoadBenchmark={handleLoadBenchmark}
+        onLoadQuinonez={handleLoadQuinonez}
         hasDocuments={currentCase.documents.length > 0}
       />
 
@@ -297,6 +307,8 @@ export const App: React.FC = () => {
             onNavigateToLiterature={() => setActiveTab('literature')}
             onOpenSimilarCases={() => setIsSimilarCasesOpen(true)}
             onOpenAiImport={() => setIsAiImportOpen(true)}
+            onLoadQuinonez={handleLoadQuinonez}
+            onLoadBenchmark={handleLoadBenchmark}
           />
         )}
 
