@@ -125,7 +125,8 @@ export async function analyzeRecordsWithGemini(
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'x-goog-api-key': apiKey.trim()
     },
     body: JSON.stringify(requestPayload)
   });
