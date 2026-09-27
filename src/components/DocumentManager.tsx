@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { IngestedDocument, CaseProfile } from '../types/forensic';
-import { parsePdfFile, parseTextFile, extractClinicalEntities } from '../utils/pdfParser';
+import { parsePdfFile, parseTextFile, parseImageFile } from '../utils/pdfParser';
+import { extractFilesFromDataTransfer, getFileCategory } from '../utils/fileExtractor';
 import { 
   Upload, 
   FileText, 
@@ -18,7 +19,11 @@ import {
   Calendar,
   FileCheck,
   FolderOpen,
-  Presentation
+  FolderPlus,
+  Image as ImageIcon,
+  Presentation,
+  Check,
+  AlertTriangle
 } from 'lucide-react';
 
 interface DocumentManagerProps {
@@ -37,48 +42,121 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
   onNavigateToPresentation
 }) => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [processStatus, setProcessStatus] = useState<string>('');
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const [batesPrefix, setBatesPrefix] = useState<string>('REC-');
   const [batesStart, setBatesStart] = useState<number>(1);
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [feedbackBanner, setFeedbackBanner] = useState<{
+    type: 'success' | 'warning' | 'error';
+    message: string;
+    details?: string;
+  } | null>(null);
 
-  const processFiles = async (files: FileList | File[]) => {
-    if (!files || files.length === 0) return;
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
+
+  // Global window drag prevention so dropping slightly outside does not navigate window
+  useEffect(() => {
+    const handleWindowDragOver = (e: DragEvent) => {
+      e.preventDefault();
+    };
+    const handleWindowDrop = (e: DragEvent) => {
+      e.preventDefault();
+    };
+
+    window.addEventListener('dragover', handleWindowDragOver);
+    window.addEventListener('drop', handleWindowDrop);
+
+    return () => {
+      window.removeEventListener('dragover', handleWindowDragOver);
+      window.removeEventListener('drop', handleWindowDrop);
+    };
+  }, []);
+
+  const processFilesList = async (files: File[]) => {
+    if (!files || files.length === 0) {
+      setFeedbackBanner({
+        type: 'warning',
+        message: 'No readable files found in the dropped selection.',
+        details: 'Ensure the folder or selection contains PDF, text, or image files.'
+      });
+      return;
+    }
 
     setIsProcessing(true);
+    setFeedbackBanner(null);
+
     const newDocs: IngestedDocument[] = [];
+    const skippedFiles: string[] = [];
     let currentStart = batesStart + (currentCase.documents.reduce((acc, d) => acc + d.pageCount, 0));
 
-    try {
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setProcessStatus(`Ingesting record ${i + 1} of ${files.length}: ${file.name}...`);
+
+      const category = getFileCategory(file);
+
+      try {
         let doc: IngestedDocument;
 
-        if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+        if (category === 'pdf') {
           doc = await parsePdfFile(file, batesPrefix, currentStart);
-        } else {
+        } else if (category === 'image') {
+          doc = await parseImageFile(file, batesPrefix, currentStart);
+        } else if (category === 'text') {
           doc = await parseTextFile(file, batesPrefix, currentStart);
+        } else {
+          // Unsupported or binary non-media file
+          skippedFiles.push(file.name);
+          continue;
         }
 
         newDocs.push(doc);
         currentStart += doc.pageCount;
+      } catch (fileErr) {
+        console.warn(`Error processing file ${file.name}:`, fileErr);
+        skippedFiles.push(`${file.name} (error reading file)`);
       }
+    }
 
+    if (newDocs.length > 0) {
       const updatedDocs = [...currentCase.documents, ...newDocs];
       onUpdateCase({ documents: updatedDocs });
-    } catch (err) {
-      console.error('Document ingestion error:', err);
-    } finally {
-      setIsProcessing(false);
-      setIsDragging(false);
-      if (fileInputRef.current) fileInputRef.current.value = '';
+
+      const totalNewPages = newDocs.reduce((acc, d) => acc + d.pageCount, 0);
+      setFeedbackBanner({
+        type: skippedFiles.length > 0 ? 'warning' : 'success',
+        message: `Successfully ingested ${newDocs.length} record${newDocs.length > 1 ? 's' : ''} (${totalNewPages} total page${totalNewPages > 1 ? 's' : ''}).`,
+        details: skippedFiles.length > 0 ? `Note: ${skippedFiles.length} item(s) skipped: ${skippedFiles.join(', ')}` : undefined
+      });
+    } else {
+      setFeedbackBanner({
+        type: 'error',
+        message: 'No files could be parsed.',
+        details: skippedFiles.length > 0 ? `Skipped items: ${skippedFiles.join(', ')}` : 'Please ensure valid PDF, image, or text files are selected.'
+      });
     }
+
+    setIsProcessing(false);
+    setProcessStatus('');
+    setIsDragging(false);
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (folderInputRef.current) folderInputRef.current.value = '';
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
-      processFiles(event.target.files);
+      const filesArray = Array.from(event.target.files);
+      processFilesList(filesArray);
+    }
+  };
+
+  const handleFolderUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      const filesArray = Array.from(event.target.files);
+      processFilesList(filesArray);
     }
   };
 
@@ -94,12 +172,29 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(false);
-    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-      processFiles(e.dataTransfer.files);
+    setIsProcessing(true);
+    setProcessStatus('Unpacking dropped items and directory hierarchy...');
+
+    try {
+      const extracted = await extractFilesFromDataTransfer(e.dataTransfer);
+      await processFilesList(extracted);
+    } catch (err) {
+      console.error('Directory drop extraction failed:', err);
+      // Fallback to simple files list
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        processFilesList(Array.from(e.dataTransfer.files));
+      } else {
+        setIsProcessing(false);
+        setFeedbackBanner({
+          type: 'error',
+          message: 'Failed to read dropped files.',
+          details: String(err)
+        });
+      }
     }
   };
 
@@ -215,6 +310,37 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
         </div>
       </div>
 
+      {/* Real-time Status / Feedback Banner */}
+      {feedbackBanner && (
+        <div className={`p-4 rounded-xl border flex items-start gap-3 text-xs transition-all ${
+          feedbackBanner.type === 'success'
+            ? 'bg-emerald-950/40 border-emerald-700/60 text-emerald-300'
+            : feedbackBanner.type === 'warning'
+            ? 'bg-amber-950/40 border-amber-700/60 text-amber-300'
+            : 'bg-red-950/40 border-red-700/60 text-red-300'
+        }`}>
+          {feedbackBanner.type === 'success' ? (
+            <CheckCircle className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
+          ) : feedbackBanner.type === 'warning' ? (
+            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+          ) : (
+            <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+          )}
+          <div className="flex-1">
+            <p className="font-bold">{feedbackBanner.message}</p>
+            {feedbackBanner.details && (
+              <p className="text-[11px] opacity-90 mt-1">{feedbackBanner.details}</p>
+            )}
+          </div>
+          <button 
+            onClick={() => setFeedbackBanner(null)}
+            className="text-slate-400 hover:text-white text-xs font-mono px-1.5 py-0.5 rounded hover:bg-slate-800"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Ingestion & Bates Stamping Controls */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         
@@ -224,7 +350,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
                 <Upload className="w-4 h-4 text-cyan-400" />
-                <span>Ingest Medical Records (Drag & Drop or Choose Files)</span>
+                <span>Ingest Medical Records (Files, Folders & Images)</span>
               </h3>
               <div className="flex items-center gap-2 text-xs">
                 <span className="text-slate-400">Bates Prefix:</span>
@@ -249,19 +375,31 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              onClick={() => fileInputRef.current?.click()}
               className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all ${
                 isDragging 
-                  ? 'border-cyan-400 bg-cyan-950/40 ring-4 ring-cyan-500/20' 
+                  ? 'border-cyan-400 bg-cyan-950/40 ring-4 ring-cyan-500/20 scale-[1.01]' 
                   : 'border-slate-700 hover:border-cyan-500 bg-slate-950/60'
               }`}
             >
+              {/* Hidden File Input (Multiple Files & Images) */}
               <input
                 ref={fileInputRef}
                 type="file"
                 multiple
-                accept=".pdf,.txt,.md,.text"
+                accept=".pdf,.txt,.md,.text,.rtf,.csv,.log,.png,.jpg,.jpeg,.webp,.bmp,.tiff,.tif,.gif"
                 onChange={handleFileUpload}
+                className="hidden"
+              />
+
+              {/* Hidden Folder Input (Directory Traversal) */}
+              <input
+                ref={folderInputRef}
+                type="file"
+                // @ts-ignore
+                webkitdirectory="true"
+                directory="true"
+                multiple
+                onChange={handleFolderUpload}
                 className="hidden"
               />
 
@@ -274,15 +412,15 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
               </div>
 
               <p className="text-sm font-bold text-slate-100 text-center">
-                {isDragging ? 'Release files to ingest immediately...' : 'Drag and drop patient records (PDF, text, EHR) here'}
+                {isDragging ? 'Release files or folders to ingest immediately...' : 'Drag and drop patient records, folders, or images here'}
               </p>
               
-              <p className="text-xs text-slate-400 mt-1 text-center">
-                Hospital charts, operative notes, nursing flowsheets, EMS runs, or laboratory panels
+              <p className="text-xs text-slate-400 mt-1 text-center max-w-lg">
+                Drop entire patient folders, hospital charts (PDF), operative notes, clinical photos (PNG/JPG), EMS runs, or labs
               </p>
 
-              {/* Explicit Choose Files from Explorer Button */}
-              <div className="mt-4 flex items-center gap-3">
+              {/* Action Buttons for Explorer Picker */}
+              <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
                 <button
                   type="button"
                   onClick={(e) => {
@@ -292,22 +430,38 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
                   className="flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-semibold shadow-md transition-colors"
                 >
                   <FolderOpen className="w-4 h-4" />
-                  <span>Choose Files from Explorer</span>
+                  <span>Choose Files / Images</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    folderInputRef.current?.click();
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-slate-600 text-slate-200 text-xs font-semibold shadow-md transition-colors"
+                >
+                  <FolderPlus className="w-4 h-4 text-cyan-400" />
+                  <span>Choose Case Folder</span>
                 </button>
               </div>
 
-              <div className="mt-4 flex items-center gap-2 text-[11px] text-slate-500 font-mono">
-                <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">Direct Client-Side Ingestion</span>
-                <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">Auto Continuous Bates Stamping</span>
+              <div className="mt-4 flex flex-wrap items-center justify-center gap-2 text-[11px] text-slate-500 font-mono">
+                <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">Folders Auto-Unpacked</span>
+                <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">Images & Photos Supported</span>
+                <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">Bates Stamped</span>
                 <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">Auto Slide Sync</span>
               </div>
             </div>
           </div>
 
           {isProcessing && (
-            <div className="mt-4 p-3 rounded-lg bg-cyan-950/40 border border-cyan-800/60 flex items-center gap-3 text-xs text-cyan-300 animate-pulse">
-              <div className="w-4 h-4 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin" />
-              <span>Parsing document pages, assigning Bates stamps, and updating presentation...</span>
+            <div className="mt-4 p-3.5 rounded-lg bg-cyan-950/60 border border-cyan-800/80 flex items-center gap-3 text-xs text-cyan-300 shadow-lg">
+              <div className="w-4 h-4 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin flex-shrink-0" />
+              <div className="flex-1 truncate">
+                <span className="font-bold">Processing Ingestion: </span>
+                <span>{processStatus || 'Parsing pages and assigning Bates stamps...'}</span>
+              </div>
             </div>
           )}
         </div>
@@ -322,7 +476,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
 
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs">
-                <span className="text-slate-400">Total Ingested Documents</span>
+                <span className="text-slate-400">Total Ingested Records</span>
                 <span className="font-mono font-bold text-white text-sm">
                   {currentCase.documents.length}
                 </span>
@@ -337,7 +491,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
 
               <div className="flex items-center justify-between p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs">
                 <span className="text-slate-400">Bates Stamped Range</span>
-                <span className="font-mono text-slate-300 text-xs">
+                <span className="font-mono text-slate-300 text-xs truncate max-w-[180px] text-right">
                   {totalPages > 0 
                     ? `${batesPrefix}${String(batesStart).padStart(5, '0')} — ${batesPrefix}${String(batesStart + totalPages - 1).padStart(5, '0')}`
                     : 'Awaiting Files'}
@@ -395,7 +549,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
             <FileText className="w-10 h-10 mx-auto text-slate-600 mb-3" />
             <p className="font-semibold text-slate-300">No medical records ingested yet.</p>
             <p className="text-slate-400 mt-1 max-w-md mx-auto">
-              Drag and drop patient records above, or click "Choose Files from Explorer" to begin.
+              Drag and drop patient records, folders, or images above, or click "Choose Files / Images" or "Choose Case Folder" to begin.
             </p>
           </div>
         ) : (
@@ -403,7 +557,7 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-950/80 text-slate-400 border-b border-slate-800 font-semibold">
                 <tr>
-                  <th className="p-3">File Name</th>
+                  <th className="p-3">Type & File Name</th>
                   <th className="p-3">Pages</th>
                   <th className="p-3">Bates Number Range</th>
                   <th className="p-3">Size</th>
@@ -414,36 +568,58 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
               <tbody className="divide-y divide-slate-800">
                 {currentCase.documents
                   .filter(d => d.fileName.toLowerCase().includes(searchTerm.toLowerCase()))
-                  .map((doc) => (
-                    <tr key={doc.id} className="hover:bg-slate-850/60 transition-colors">
-                      <td className="p-3 font-medium text-white flex items-center gap-2">
-                        <FileText className="w-4 h-4 text-cyan-400 flex-shrink-0" />
-                        <span className="truncate max-w-xs">{doc.fileName}</span>
-                      </td>
-                      <td className="p-3 font-mono text-slate-300">{doc.pageCount} pgs</td>
-                      <td className="p-3 font-mono text-cyan-400">
-                        {doc.batesPrefix}{String(doc.batesStartNumber).padStart(5, '0')} — {doc.batesPrefix}{String(doc.batesEndNumber).padStart(5, '0')}
-                      </td>
-                      <td className="p-3 text-slate-400">{(doc.fileSize / 1024 / 1024).toFixed(2)} MB</td>
-                      <td className="p-3 text-slate-400">{new Date(doc.uploadedAt).toLocaleTimeString()}</td>
-                      <td className="p-3 text-right space-x-2">
-                        <button
-                          onClick={() => onSelectDocumentForView(doc, 1)}
-                          className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 text-[11px] font-semibold transition-colors inline-flex items-center gap-1"
-                        >
-                          <Eye className="w-3 h-3" />
-                          <span>View Bates</span>
-                        </button>
-                        <button
-                          onClick={() => handleRemoveDoc(doc.id)}
-                          className="p-1 rounded bg-slate-800 hover:bg-red-950 hover:text-red-400 text-slate-400 text-[11px] transition-colors"
-                          title="Remove document"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                  .map((doc) => {
+                    const isImg = doc.fileType.startsWith('image/');
+                    const isPdf = doc.fileType === 'application/pdf' || doc.fileName.endsWith('.pdf');
+
+                    return (
+                      <tr key={doc.id} className="hover:bg-slate-850/60 transition-colors">
+                        <td className="p-3 font-medium text-white flex items-center gap-2">
+                          {isImg ? (
+                            <div className="p-1 rounded bg-purple-950/60 border border-purple-800 text-purple-400" title="Image Exhibit">
+                              <ImageIcon className="w-3.5 h-3.5" />
+                            </div>
+                          ) : isPdf ? (
+                            <div className="p-1 rounded bg-red-950/60 border border-red-800 text-red-400" title="PDF Record">
+                              <FileText className="w-3.5 h-3.5" />
+                            </div>
+                          ) : (
+                            <div className="p-1 rounded bg-cyan-950/60 border border-cyan-800 text-cyan-400" title="Text Record">
+                              <FileText className="w-3.5 h-3.5" />
+                            </div>
+                          )}
+                          <span className="truncate max-w-xs">{doc.fileName}</span>
+                          {isImg && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800 font-mono">
+                              IMAGE
+                            </span>
+                          )}
+                        </td>
+                        <td className="p-3 font-mono text-slate-300">{doc.pageCount} pg{doc.pageCount > 1 ? 's' : ''}</td>
+                        <td className="p-3 font-mono text-cyan-400">
+                          {doc.batesPrefix}{String(doc.batesStartNumber).padStart(5, '0')} — {doc.batesPrefix}{String(doc.batesEndNumber).padStart(5, '0')}
+                        </td>
+                        <td className="p-3 text-slate-400">{(doc.fileSize / 1024 / 1024).toFixed(2)} MB</td>
+                        <td className="p-3 text-slate-400">{new Date(doc.uploadedAt).toLocaleTimeString()}</td>
+                        <td className="p-3 text-right space-x-2">
+                          <button
+                            onClick={() => onSelectDocumentForView(doc, 1)}
+                            className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-cyan-400 text-[11px] font-semibold transition-colors inline-flex items-center gap-1"
+                          >
+                            <Eye className="w-3 h-3" />
+                            <span>View Bates</span>
+                          </button>
+                          <button
+                            onClick={() => handleRemoveDoc(doc.id)}
+                            className="p-1 rounded bg-slate-800 hover:bg-red-950 hover:text-red-400 text-slate-400 text-[11px] transition-colors"
+                            title="Remove document"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>

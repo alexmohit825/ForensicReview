@@ -114,22 +114,41 @@ export const DocumentViewerModal: React.FC<DocumentViewerModalProps> = ({
         {/* Content Area */}
         <div className="flex-1 flex overflow-hidden">
           
-          {/* Main Document Text Viewer */}
+          {/* Main Document Text or Image Viewer */}
           <div className="flex-1 overflow-y-auto p-8 bg-slate-950 flex flex-col items-center">
             <div 
-              style={{ width: `${Math.min(100, zoomLevel)}%`, maxWidth: '800px' }}
+              style={{ width: `${Math.min(100, zoomLevel)}%`, maxWidth: '850px' }}
               className="w-full bg-slate-900 border border-slate-800 rounded-xl shadow-xl p-8 min-h-[500px] text-xs font-mono leading-relaxed text-slate-200 space-y-4"
             >
               {/* Bates Header Printed on Canvas */}
               <div className="flex justify-between items-center pb-3 border-b border-slate-800 text-[11px] text-cyan-400 font-bold">
-                <span>{document.fileName}</span>
+                <span className="truncate max-w-sm">{document.fileName}</span>
                 <span>CONFIDENTIAL EXPERT REVIEW • {currentBatesNumber}</span>
               </div>
 
-              {/* Text / Note Content */}
-              <div className="whitespace-pre-wrap font-sans text-xs text-slate-200 leading-relaxed py-2">
-                {pageText}
-              </div>
+              {/* Image Exhibit Rendering */}
+              {document.fileType.startsWith('image/') && document.fileDataUrl ? (
+                <div className="py-4 flex flex-col items-center justify-center">
+                  <div className="relative border border-slate-700 rounded-lg overflow-hidden bg-black shadow-2xl p-1 max-w-full">
+                    <img 
+                      src={document.fileDataUrl} 
+                      alt={document.fileName}
+                      className="max-h-[55vh] object-contain mx-auto rounded"
+                    />
+                    <div className="absolute bottom-2 right-2 bg-slate-950/90 border border-cyan-500/80 text-cyan-300 font-mono text-[10px] px-2 py-0.5 rounded shadow">
+                      BATES: {currentBatesNumber}
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-slate-400 mt-3 text-center">
+                    Visual Exhibit Authenticated • {(document.fileSize / 1024).toFixed(1)} KB
+                  </p>
+                </div>
+              ) : (
+                /* Text / Note Content */
+                <div className="whitespace-pre-wrap font-sans text-xs text-slate-200 leading-relaxed py-2">
+                  {pageText}
+                </div>
+              )}
 
               {/* Bates Footer */}
               <div className="pt-6 border-t border-slate-800/80 flex justify-between items-center text-[10px] text-slate-500 font-mono">

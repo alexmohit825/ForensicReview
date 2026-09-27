@@ -70,13 +70,33 @@ export const App: React.FC = () => {
     }
   }, [currentCase.id]);
 
-  // Persist cases catalog and active ID
+  // Persist cases catalog and active ID with quota resilience
   useEffect(() => {
-    localStorage.setItem(CASES_CATALOG_STORAGE_KEY, JSON.stringify(cases));
+    try {
+      localStorage.setItem(CASES_CATALOG_STORAGE_KEY, JSON.stringify(cases));
+    } catch (quotaErr) {
+      console.warn('localStorage quota exceeded, sanitizing for storage...', quotaErr);
+      try {
+        const sanitized = cases.map(c => ({
+          ...c,
+          documents: c.documents.map(d => ({
+            ...d,
+            fileDataUrl: undefined // Blob URLs cannot be persisted across restarts anyway
+          }))
+        }));
+        localStorage.setItem(CASES_CATALOG_STORAGE_KEY, JSON.stringify(sanitized));
+      } catch (innerErr) {
+        console.error('Failed to store cases in localStorage:', innerErr);
+      }
+    }
   }, [cases]);
 
   useEffect(() => {
-    localStorage.setItem(ACTIVE_CASE_ID_STORAGE_KEY, activeCaseId);
+    try {
+      localStorage.setItem(ACTIVE_CASE_ID_STORAGE_KEY, activeCaseId);
+    } catch (e) {
+      console.error('Failed to store active case ID:', e);
+    }
   }, [activeCaseId]);
 
   // Switch between cases
