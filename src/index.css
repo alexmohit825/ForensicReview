@@ -4,91 +4,42 @@
 
 @layer base {
   :root {
-    --bg-main: #0b0f19;
-    --card-bg: #111827;
-    --border-color: #1f2937;
+    --bg-main: #f8fafc;
+    --card-bg: #ffffff;
+    --border-color: #e2e8f0;
   }
   
   body {
-    @apply bg-slate-950 text-slate-100 font-sans antialiased overflow-x-hidden selection:bg-cyan-500 selection:text-black;
+    @apply bg-slate-50 text-slate-900 font-sans antialiased overflow-x-hidden selection:bg-blue-600 selection:text-white;
   }
 
-  /* Custom sleek scrollbar for clinical record review */
+  /* Sleek clinical light scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
   }
   ::-webkit-scrollbar-track {
-    background: #0f172a;
+    background: #f1f5f9;
   }
   ::-webkit-scrollbar-thumb {
-    background: #334155;
+    background: #cbd5e1;
     border-radius: 3px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: #475569;
+    background: #94a3b8;
   }
 }
 
-/* Print Styles for Court / Deposition Summary Export */
+/* Print Styles for Court / Deposition Exhibits */
 @media print {
   body {
     background: white !important;
     color: black !important;
   }
-  .no-print {
+  header, footer, button, .no-print {
     display: none !important;
-  }
-  .print-only {
-    display: block !important;
   }
   .page-break {
     page-break-before: always;
-  }
-
-  /* Independent Section Print Targeting */
-  body.printing-synopsis *:not(.print-synopsis-target, .print-synopsis-target *) {
-    display: none !important;
-  }
-  body.printing-synopsis .print-synopsis-target {
-    display: block !important;
-    width: 100% !important;
-    position: absolute;
-    left: 0;
-    top: 0;
-    margin: 0;
-    padding: 15px;
-    background: white !important;
-    color: black !important;
-  }
-
-  body.printing-graphic *:not(.print-graphic-target, .print-graphic-target *) {
-    display: none !important;
-  }
-  body.printing-graphic .print-graphic-target {
-    display: block !important;
-    width: 100% !important;
-    position: absolute;
-    left: 0;
-    top: 0;
-    margin: 0;
-    padding: 15px;
-    background: white !important;
-    color: black !important;
-  }
-
-  body.printing-table *:not(.print-table-target, .print-table-target *) {
-    display: none !important;
-  }
-  body.printing-table .print-table-target {
-    display: block !important;
-    width: 100% !important;
-    position: absolute;
-    left: 0;
-    top: 0;
-    margin: 0;
-    padding: 15px;
-    background: white !important;
-    color: black !important;
   }
 }
