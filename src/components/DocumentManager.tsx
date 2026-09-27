@@ -37,6 +37,7 @@ interface DocumentManagerProps {
   onNavigateToStance?: () => void;
   onNavigateToLiterature?: () => void;
   onOpenSimilarCases?: () => void;
+  onOpenAiImport?: () => void;
 }
 
 export const DocumentManager: React.FC<DocumentManagerProps> = ({
@@ -49,7 +50,8 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
   onNavigateToSynopsis,
   onNavigateToStance,
   onNavigateToLiterature,
-  onOpenSimilarCases
+  onOpenSimilarCases,
+  onOpenAiImport
 }) => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [processStatus, setProcessStatus] = useState<string>('');
@@ -545,11 +547,24 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
               Select an automated medicolegal workstation workflow once medical records are ingested.
             </p>
           </div>
-          {currentCase.documents.length === 0 && (
-            <span className="text-[11px] text-amber-400 bg-amber-950/40 border border-amber-800/60 px-2.5 py-1 rounded-md self-start sm:self-auto font-mono">
-              Records Required for Timeline Analysis
-            </span>
-          )}
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            {onOpenAiImport && (
+              <button
+                type="button"
+                onClick={onOpenAiImport}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-purple-950/80 hover:bg-purple-900 border border-purple-700/60 text-purple-300 text-xs font-semibold shadow-sm transition-colors"
+                title="Paste chronology, summary, or transcript from Claude or external AI"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                <span>Paste Claude / AI Chronology</span>
+              </button>
+            )}
+            {currentCase.documents.length === 0 && (
+              <span className="text-[11px] text-amber-400 bg-amber-950/40 border border-amber-800/60 px-2.5 py-1 rounded-md font-mono">
+                Records Required for Timeline Analysis
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -575,15 +590,13 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
             <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
               <button
                 onClick={() => {
-                  if (currentCase.milestones.length === 0 && currentCase.documents.length > 0) {
-                    onAnalyzeRecords();
-                  } else if (onNavigateToTimeline) {
-                    onNavigateToTimeline();
-                  }
+                  onAnalyzeRecords();
+                  if (onNavigateToTimeline) onNavigateToTimeline();
                 }}
                 disabled={currentCase.documents.length === 0}
                 className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-600 text-white text-xs font-semibold shadow-md transition-colors"
               >
+                <Sparkles className="w-3.5 h-3.5" />
                 <span>Generate & View Timeline</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
@@ -610,9 +623,14 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
             </div>
             <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
               <button
-                onClick={onNavigateToSynopsis}
-                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md transition-colors"
+                onClick={() => {
+                  onAnalyzeRecords();
+                  if (onNavigateToSynopsis) onNavigateToSynopsis();
+                }}
+                disabled={currentCase.documents.length === 0}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 disabled:text-slate-600 text-white text-xs font-semibold shadow-md transition-colors"
               >
+                <Sparkles className="w-3.5 h-3.5" />
                 <span>Generate Case Synopsis</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
@@ -639,9 +657,14 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
             </div>
             <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
               <button
-                onClick={onNavigateToStance}
-                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md transition-colors"
+                onClick={() => {
+                  onAnalyzeRecords();
+                  if (onNavigateToStance) onNavigateToStance();
+                }}
+                disabled={currentCase.documents.length === 0}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-600 text-white text-xs font-semibold shadow-md transition-colors"
               >
+                <Sparkles className="w-3.5 h-3.5" />
                 <span>Synthesize Medical Opinion</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>

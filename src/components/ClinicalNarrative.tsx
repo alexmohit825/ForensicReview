@@ -27,13 +27,17 @@ interface ClinicalNarrativeProps {
   stance: StanceMode;
   onOpenFullGuide: () => void;
   onUpdateCase: (updated: Partial<CaseProfile>) => void;
+  onSynthesizeRecords?: () => void;
+  onOpenAiImport?: () => void;
 }
 
 export const ClinicalNarrative: React.FC<ClinicalNarrativeProps> = ({
   currentCase,
   stance,
   onOpenFullGuide,
-  onUpdateCase
+  onUpdateCase,
+  onSynthesizeRecords,
+  onOpenAiImport
 }) => {
   const [synopsisViewMode, setSynopsisViewMode] = useState<'PARAGRAPH' | 'TABLE'>('PARAGRAPH');
   const isDefense = stance === 'DEFENSE';
@@ -98,6 +102,30 @@ export const ClinicalNarrative: React.FC<ClinicalNarrativeProps> = ({
               <span>Table Chronology Format</span>
             </button>
           </div>
+
+          {/* Re-Synthesize from Ingested Records Button */}
+          {onSynthesizeRecords && (
+            <button
+              onClick={onSynthesizeRecords}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white text-xs font-semibold shadow-md transition-colors flex-shrink-0"
+              title="Run deep clinical NLP extraction across all ingested records"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-300" />
+              <span>Re-Synthesize Records</span>
+            </button>
+          )}
+
+          {/* Paste Claude / AI Narrative Button */}
+          {onOpenAiImport && (
+            <button
+              onClick={onOpenAiImport}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-purple-950/80 hover:bg-purple-900 border border-purple-700/60 text-purple-300 text-xs font-semibold shadow-sm transition-colors flex-shrink-0"
+              title="Paste narrative or chronology from Claude or external AI"
+            >
+              <Sparkles className="w-4 h-4 text-purple-400" />
+              <span>Paste Claude Narrative</span>
+            </button>
+          )}
 
           {/* Independent Print to PDF Button */}
           <button

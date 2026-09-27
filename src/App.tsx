@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CaseProfile, StanceMode, IngestedDocument, CaseArtifact } from './types/forensic';
+import { CaseProfile, StanceMode, IngestedDocument, CaseArtifact, ClinicalMilestone } from './types/forensic';
 import { createEmptyCase, getBenchmarkTeachingCase } from './utils/forensicAnalyzer';
 import { extractClinicalEntities } from './utils/pdfParser';
 import { exportToPowerPoint } from './utils/pptGenerator';
@@ -16,6 +16,8 @@ import { DocumentViewerModal } from './components/DocumentViewerModal';
 import { CaseDirectoryModal } from './components/CaseDirectoryModal';
 import { LiteratureSearchTab } from './components/LiteratureSearchTab';
 import { SimilarCasesModal } from './components/SimilarCasesModal';
+import { AiNarrativeImportModal } from './components/AiNarrativeImportModal';
+import { synthesizeRecordsFromDocuments } from './utils/clinicalSynthesizer';
 
 const CASES_CATALOG_STORAGE_KEY = 'forensicreview_cases_catalog_v2';
 const ACTIVE_CASE_ID_STORAGE_KEY = 'forensicreview_active_case_id_v2';
@@ -54,6 +56,7 @@ export const App: React.FC = () => {
   const [guideSectionId, setGuideSectionId] = useState<string>('ingestion');
   const [isCaseDirectoryOpen, setIsCaseDirectoryOpen] = useState<boolean>(false);
   const [isSimilarCasesOpen, setIsSimilarCasesOpen] = useState<boolean>(false);
+  const [isAiImportOpen, setIsAiImportOpen] = useState<boolean>(false);
 
   // Document Viewer Modal State
   const [viewerState, setViewerState] = useState<{
@@ -169,46 +172,48 @@ export const App: React.FC = () => {
     setActiveTab('timeline');
   };
 
-  // Run entity analysis on ingested records
+  // Run deep clinical synthesis on ingested records
   const handleAnalyzeRecords = () => {
     if (currentCase.documents.length === 0) return;
 
-    const { vitals, medications } = extractClinicalEntities(currentCase.documents);
-
-    const defaultMilestones = currentCase.milestones.length > 0 
-      ? currentCase.milestones 
-      : currentCase.documents.map((doc, i) => ({
-          id: `ms-auto-${i}`,
-          timestamp: new Date().toISOString(),
-          timeDisplay: `Doc ${i + 1}`,
-          category: 'PHYSICIAN_CONSULT' as const,
-          title: `Ingested Record: ${doc.fileName}`,
-          provider: 'Reviewing Clinician',
-          facilityDepartment: 'Health Record Ingestion',
-          summary: `Contains ${doc.pageCount} Bates-stamped pages (${doc.batesPrefix}${doc.batesStartNumber} to ${doc.batesPrefix}${doc.batesEndNumber}).`,
-          severity: 'normal' as const,
-          pageNumber: doc.batesStartNumber,
-          batesNumber: `${doc.batesPrefix}${String(doc.batesStartNumber).padStart(5, '0')}`,
-          defenseFlag: {
-            isDefenseAnchor: true,
-            anchorCategory: 'DOCUMENTED_JUDGMENT' as const,
-            argument: 'Contemporaneous documentation authenticated.'
-          },
-          plaintiffFlag: {
-            isBreach: false,
-            breachCategory: 'COMMUNICATION' as const,
-            argument: 'Record subject to complete audit.'
-          }
-        }));
+    const synthesized = synthesizeRecordsFromDocuments(currentCase.documents, stance);
 
     handleUpdateCase({
-      vitals: vitals.length > 0 ? vitals : currentCase.vitals,
-      medications: medications.length > 0 ? medications : currentCase.medications,
-      milestones: defaultMilestones,
-      synopsisExecutive: currentCase.synopsisExecutive || `Case evaluation for ${currentCase.caseName || 'the patient'} based upon ${currentCase.documents.length} ingested records comprising ${currentCase.documents.reduce((acc, d) => acc + d.pageCount, 0)} pages.`
+      patientName: (!currentCase.patientName || currentCase.patientName === 'Michael E. Davis' || currentCase.patientName === 'Confidential' || currentCase.patientName.trim() === '')
+        ? synthesized.patientName 
+        : currentCase.patientName,
+      dateOfIncident: currentCase.dateOfIncident || synthesized.dateOfIncident,
+      caseName: (!currentCase.caseName || currentCase.caseName.startsWith('New Forensic Case')) 
+        ? synthesized.caseCaption 
+        : currentCase.caseName,
+      milestones: synthesized.milestones,
+      vitals: synthesized.vitals.length > 0 ? synthesized.vitals : currentCase.vitals,
+      medications: synthesized.medications.length > 0 ? synthesized.medications : currentCase.medications,
+      synopsisExecutive: synthesized.synopsisExecutive,
+      synopsisNarrative: synthesized.synopsisNarrative,
+      standardOfCareDetermination: synthesized.standardOfCareDetermination,
+      causationOpinion: synthesized.causationOpinion,
+      plaintiffBreaches: synthesized.plaintiffBreaches,
+      defenseAnchors: synthesized.defenseAnchors
     });
 
-    setActiveTab('timeline');
+    setActiveTab('synopsis');
+  };
+
+  const handleApplyAiNarrative = (data: {
+    synopsis: string;
+    extractedMilestones?: ClinicalMilestone[];
+    patientName?: string;
+  }) => {
+    handleUpdateCase({
+      synopsisNarrative: data.synopsis,
+      synopsisExecutive: data.synopsis.split('\n\n')[0]?.substring(0, 350) + '...',
+      milestones: (data.extractedMilestones && data.extractedMilestones.length > 0) 
+        ? data.extractedMilestones 
+        : currentCase.milestones,
+      patientName: data.patientName || currentCase.patientName
+    });
+    setActiveTab('synopsis');
   };
 
   const handleOpenDocViewer = (doc: IngestedDocument, page: number = 1) => {
@@ -291,6 +296,7 @@ export const App: React.FC = () => {
             onNavigateToStance={() => setActiveTab('stance')}
             onNavigateToLiterature={() => setActiveTab('literature')}
             onOpenSimilarCases={() => setIsSimilarCasesOpen(true)}
+            onOpenAiImport={() => setIsAiImportOpen(true)}
           />
         )}
 
@@ -320,6 +326,8 @@ export const App: React.FC = () => {
             stance={stance}
             onOpenFullGuide={() => handleOpenFullGuide('synopsis')}
             onUpdateCase={handleUpdateCase}
+            onSynthesizeRecords={handleAnalyzeRecords}
+            onOpenAiImport={() => setIsAiImportOpen(true)}
           />
         )}
 
@@ -376,6 +384,13 @@ export const App: React.FC = () => {
         isOpen={isSimilarCasesOpen}
         onClose={() => setIsSimilarCasesOpen(false)}
         currentCaseTopic={currentCase.caseName}
+      />
+
+      {/* AI & Claude Narrative Import Modal */}
+      <AiNarrativeImportModal
+        isOpen={isAiImportOpen}
+        onClose={() => setIsAiImportOpen(false)}
+        onApplyNarrative={handleApplyAiNarrative}
       />
 
       {/* Toggleable Forensic Protocol & Legal Guide Drawer */}
