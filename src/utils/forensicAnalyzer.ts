@@ -199,116 +199,171 @@ export function getBenchmarkTeachingCase(): CaseProfile {
     {
       id: 'ms-1',
       timestamp: '2024-03-12T07:10:00',
-      timeDisplay: '07:10',
+      timeDisplay: '07:10 AM',
+      relativeTimeDelta: 'T+0 (Admission)',
+      phase: 'PRE_ADMISSION',
       category: 'ED_TRIAGE',
-      title: 'Emergency Department Presentation',
-      provider: 'Triage RN K. Patel',
-      facilityDepartment: 'St. Jude Community Hospital ED',
-      summary: '58-year-old male arrives via private auto with sudden-onset ripping interscapular back pain. Blood pressure 188/112 mmHg.',
+      title: 'Emergency Department Triage & Presentation',
+      provider: 'Triage RN K. Patel, BSN, RN',
+      providerRole: 'NURSE',
+      facilityDepartment: 'St. Jude Community Hospital Emergency Dept.',
+      summary: '58-year-old male arrives via private auto with sudden-onset tearing interscapular thoracic back pain radiating to mid-abdomen. Triage vitals: SBP 188/112 mmHg, HR 98 bpm.',
+      verbatimQuote: 'Patient reports sudden severe tearing retrosternal pain radiating straight through to shoulder blades starting 06:30 while at rest. Describes pain as 10/10 ripping quality. Diaphoretic. SBP 188/112. Placed on cardiac monitor.',
       severity: 'critical',
       pageNumber: 2,
       batesNumber: 'REC-00002',
+      benchmarkComparison: {
+        expectedStandard: 'Triage acuity assignment within 10 minutes of arrival',
+        actualTime: '4 minutes',
+        status: 'COMPLIANT'
+      },
       plaintiffFlag: {
         isBreach: false,
         breachCategory: 'COMMUNICATION',
-        argument: 'Triage properly assigned ESI Level 2, but provider did not evaluate for 45 minutes.'
+        argument: 'Triage nurse correctly assigned ESI Acuity Level 2, but fail-safe protocol to alert attending physician within 15 minutes was not activated.',
+        standardOfCareRule: 'ESI Level 2 patients require immediate physician bedside evaluation within 15-30 minutes.'
       },
       defenseFlag: {
         isDefenseAnchor: true,
         anchorCategory: 'DOCUMENTED_JUDGMENT',
-        argument: 'Triage timely documented full symptom profile and immediately initiated ECG protocol.'
+        argument: 'Triage nurse promptly documented hallmark symptom triad (tearing pain, interscapular radiation, severe hypertension) and immediately placed patient on telemetry.',
+        clinicalRationale: 'Contemporaneous triage assessment adheres strictly to Emergency Nursing Association (ENA) protocols.'
       }
     },
     {
       id: 'ms-2',
       timestamp: '2024-03-12T07:55:00',
-      timeDisplay: '07:55',
+      timeDisplay: '07:55 AM',
+      relativeTimeDelta: '+45 min',
+      phase: 'DIAGNOSTIC_WORKUP',
       category: 'PHYSICIAN_CONSULT',
-      title: 'Attending Emergency Physician Bedside Evaluation',
+      title: 'Attending Emergency Physician Bedside Evaluation & Initial Plan',
       provider: 'Dr. Raymond Holt, MD (Emergency Medicine)',
+      providerRole: 'ATTENDING',
       facilityDepartment: 'ED Acute Care Bay 4',
-      summary: 'Initial differential diagnosis: Acute Coronary Syndrome (ACS) vs. Musculoskeletal Thoracic Spasm. ECG shows nonspecific ST changes; Troponin I negative (<0.01). Ordered Chest X-Ray and aspirin 324 mg.',
+      summary: 'Initial physician evaluation. Differential diagnosis formulated: Acute Coronary Syndrome (ACS) vs. Musculoskeletal Thoracic Spasm vs. Acute Aortic Syndrome. ECG demonstrates sinus rhythm with nonspecific ST abnormalities; serial troponins negative (<0.01). Ordered portable CXR, Aspirin 324 mg, and IV Labetalol 20 mg.',
+      verbatimQuote: '58yo male with severe back and chest discomfort. ECG without STEMI criteria. Differential includes ACS, thoracic radiculopathy, dissecting thoracic aneurysm. Initiating ASA 324mg, IV Labetalol 20mg for BP control. Troponin drawn.',
       severity: 'caution',
       pageNumber: 4,
       batesNumber: 'REC-00004',
+      benchmarkComparison: {
+        expectedStandard: 'Emergency physician bedside evaluation within 30 min of arrival',
+        actualTime: '45 minutes',
+        status: 'DELAYED'
+      },
       plaintiffFlag: {
         isBreach: true,
         breachCategory: 'MISDIAGNOSIS',
-        argument: 'Failure to order immediate STAT CT Angiogram despite classic tearing/ripping pain radiation and severe hypertension, anchoring prematurely on ACS.'
+        argument: 'Failure to order immediate STAT CT Angiogram of chest upon presentation. Physician anchored prematurely on ACS despite classic tearing pain and uncalibrated hypertension, giving Aspirin which increased bleeding risks.',
+        standardOfCareRule: 'AHA/ACC Guidelines: Patients presenting with tearing thoracic pain radiating to the back with severe refractory hypertension require immediate definitive aortic imaging (CTA or TEE) within 60 minutes.'
       },
       defenseFlag: {
         isDefenseAnchor: true,
         anchorCategory: 'DOCUMENTED_JUDGMENT',
-        argument: 'ACS is 50-fold more prevalent than aortic dissection; physician appropriately ruled out ACS first with serial troponins and initiated beta-blocker labetalol.'
+        argument: 'ACS is statistically 50 times more common than aortic dissection in this demographic. Physician appropriately prioritized ruling out ischemic myocardial infarction while simultaneously administering IV Labetalol to lower dP/dt sheer stress.',
+        clinicalRationale: 'Reasoned clinical judgment: Dual-branching differential diagnosis pursued with prompt impulse control initiation.'
       }
     },
     {
       id: 'ms-3',
       timestamp: '2024-03-12T11:30:00',
-      timeDisplay: '11:30',
+      timeDisplay: '11:30 AM',
+      relativeTimeDelta: '+3h 35 min',
+      phase: 'CRITICAL_WINDOW',
       category: 'IMAGING',
-      title: 'CT Angiogram Chest/Abdomen Ordered & Performed',
-      provider: 'Dr. Raymond Holt, MD / Radiologist Dr. Elaine Wu, MD',
-      facilityDepartment: 'CT Scanner 2',
-      summary: 'CT Angiography completed 3 hours and 35 minutes after initial arrival. Findings: Acute Stanford Type A aortic dissection extending from aortic root to iliac bifurcation with true lumen compression.',
+      title: 'CT Angiogram Chest/Abdomen Ordered & Executed',
+      provider: 'Dr. Raymond Holt, MD / Dr. Elaine Wu, MD (Diagnostic Radiology)',
+      providerRole: 'CONSULTANT',
+      facilityDepartment: 'Diagnostic Imaging / Multi-slice CT Scanner 2',
+      summary: 'Contrast-enhanced CT Angiography of the chest, abdomen, and pelvis completed 3 hours and 35 minutes after initial arrival. Radiologist urgent finding: Acute Stanford Type A aortic dissection extending from aortic root to bilateral common iliacs with true lumen collapse.',
+      verbatimQuote: 'CRITICAL VALUE CALLED TO DR. HOLT AT 11:34 AM: Extensive acute Stanford Type A dissection flap originating in ascending aorta 1.2 cm above sinotubular junction. Pericardial trace effusion noted. Surgical emergency.',
       severity: 'critical',
       pageNumber: 13,
       batesNumber: 'REC-00013',
+      benchmarkComparison: {
+        expectedStandard: 'Definitive aortic imaging completed < 60 minutes from suspicion',
+        actualTime: '215 minutes (3h 35m)',
+        status: 'EXCESSIVE_DELAY'
+      },
       plaintiffFlag: {
         isBreach: true,
         breachCategory: 'DELAY',
-        argument: 'Unreasonable 3.5-hour delay in ordering diagnostic CTA for a hallmark clinical presentation of acute aortic catastrophe.'
+        argument: 'Unreasonable 3.5-hour delay in ordering CTA for hallmark clinical catastrophe. The delay permitted continuous retrograde progression of the intimal tear toward the aortic valve and pericardial reflection.',
+        standardOfCareRule: 'Standard of care requires emergent CTA acquisition without waiting for non-critical routine laboratory panels.'
       },
       defenseFlag: {
         isDefenseAnchor: true,
         anchorCategory: 'COMPLICATION_MANAGEMENT',
-        argument: 'Patient renal insufficiency (Serum Cr 2.1 mg/dL) required point-of-care lab verification and IV hydration protocol prior to iodinated contrast load.'
+        argument: 'Patient presented with severe chronic renal insufficiency (baseline Serum Creatinine 2.1 mg/dL). Physician appropriately administered pre-contrast hydration to mitigate irreversible acute tubular necrosis.',
+        clinicalRationale: 'Balancing contrast-induced nephropathy risk against diagnostic urgency in an evolving clinical picture.'
       }
     },
     {
       id: 'ms-4',
       timestamp: '2024-03-12T13:15:00',
-      timeDisplay: '13:15',
+      timeDisplay: '01:15 PM',
+      relativeTimeDelta: '+1h 45 min',
+      phase: 'OPERATIVE_OR',
       category: 'PHYSICIAN_CONSULT',
-      title: 'Cardiothoracic Surgery Consult & Transfer Request',
-      provider: 'Dr. Marcus Vance, MD (Cardiothoracic Surgery)',
-      facilityDepartment: 'Surgical Consult / Transfer Desk',
-      summary: 'Community hospital lacks on-site perfusionist and emergency cardiopulmonary bypass team. Transfer request initiated to University Medical Center (42 miles away). Bed transfer delayed 2 hours 45 minutes.',
+      title: 'Cardiothoracic Surgery Consult & Emergency Transfer Coordination',
+      provider: 'Dr. Marcus Vance, MD (Cardiothoracic Surgery Consult)',
+      providerRole: 'ATTENDING',
+      facilityDepartment: 'Surgical Consult Desk / Patient Transfer Center',
+      summary: 'On-call cardiothoracic surgeon evaluates imaging remotely. Community hospital does not possess on-site perfusionist or cardiopulmonary bypass capabilities. Emergent transfer requested to University Medical Center (42 miles). Air transport requested; bed dispatch delayed 2 hours 45 minutes.',
+      verbatimQuote: 'Reviewed CTA with Dr. Holt. Stanford Type A requires emergent median sternotomy and hemiarch repair. No cardiopulmonary bypass team available at St. Jude today. Transfer to University Hospital cardiothoracic surgical suite requested STAT.',
       severity: 'critical',
       pageNumber: 17,
       batesNumber: 'REC-00017',
+      benchmarkComparison: {
+        expectedStandard: 'Inter-facility transfer dispatch < 30 minutes for surgical emergencies',
+        actualTime: '165 minutes (2h 45m)',
+        status: 'EXCESSIVE_DELAY'
+      },
       plaintiffFlag: {
         isBreach: true,
         breachCategory: 'COMMUNICATION',
-        argument: 'Community hospital failed to maintain transfer agreements for emergent surgical dissections, leading to catastrophic delay.'
+        argument: 'The facility failed to implement an immediate bypass transfer protocol, leaving the patient stranded in a non-surgical community ED for over 2.5 hours while awaiting administrative bed clearance.',
+        standardOfCareRule: 'Critical access facilities must maintain automatic direct-to-OR transfer agreements for surgical emergencies.'
       },
       defenseFlag: {
         isDefenseAnchor: true,
         anchorCategory: 'DOCUMENTED_JUDGMENT',
-        argument: 'Attending physician promptly recognized institutional limitations and coordinated air transfer; bed delay was due to receiving facility ICU saturation.'
+        argument: 'Emergency physician immediately recognized facility surgical limitations, arranged air transport, and aggressively titrated dual IV beta-blockers (Esmolol + Nitroprusside) to maintain systolic pressure 100-110 mmHg.',
+        clinicalRationale: 'Aggressive medical impulse control is the gold-standard stabilizing protocol while surgical transfer is pending.'
       }
     },
     {
       id: 'ms-5',
       timestamp: '2024-03-12T18:25:00',
-      timeDisplay: '18:25',
+      timeDisplay: '06:25 PM',
+      relativeTimeDelta: '+5h 10 min',
+      phase: 'DETERIORATION_ESCALATION',
       category: 'ADVERSE_EVENT',
-      title: 'Hemodynamic Rupture & Cardiac Arrest',
-      provider: 'Dr. Raymond Holt, MD / Code Team',
-      facilityDepartment: 'ED Resuscitation Room 1',
-      summary: 'Patient developed sudden hypotension, bradycardia, and PEA arrest secondary to retrograde aortic root rupture and hemopericardium / acute cardiac tamponade. Resuscitation unsuccessful; pronounced at 18:52.',
+      title: 'Hemodynamic Rupture, Cardiac Tamponade & PEA Arrest',
+      provider: 'Dr. Raymond Holt, MD / Emergency Code Blue Resuscitation Team',
+      providerRole: 'ATTENDING',
+      facilityDepartment: 'ED Trauma Resuscitation Suite 1',
+      summary: 'Patient suffered acute catastrophic decompensation: sudden profound hypotension (BP 50/palpable), severe bradycardia, electromechanical dissociation (PEA arrest). Bedside ultrasound confirmed massive hemopericardium and acute cardiac tamponade from retrograde aortic root rupture. Resuscitation unsuccessful; death pronounced at 18:52.',
+      verbatimQuote: 'CODE BLUE called 18:25. Patient unresponsive, pulseless. FAST exam reveals massive acute pericardial fluid with right ventricular collapse consistent with root rupture into pericardium. Emergent pericardiocentesis yielded 180cc gross blood. Resuscitation terminated 18:52.',
       severity: 'critical',
       pageNumber: 31,
       batesNumber: 'REC-00031',
+      benchmarkComparison: {
+        expectedStandard: 'Definitive surgical repair prior to intrapericardial extravasation',
+        actualTime: 'Rupture at T+11h 15m from initial onset',
+        status: 'EXCESSIVE_DELAY'
+      },
       plaintiffFlag: {
         isBreach: true,
         breachCategory: 'DELAY',
-        argument: 'Direct proximate causation: Each hour of delay in Stanford Type A repair increases mortality by 1-2% per hour. Timely diagnosis within 90 minutes would have resulted in >75% surgical survival probability.'
+        argument: 'Direct proximate causation: Stanford Type A dissection carries an acknowledged mortality rate increasing by 1-2% per hour of delay. Timely intervention within 90 minutes would have resulted in an operative survival probability exceeding 75%.',
+        standardOfCareRule: 'Causation established: Diagnostic delay directly led to preventable intrapericardial rupture.'
       },
       defenseFlag: {
         isDefenseAnchor: true,
         anchorCategory: 'COMORBIDITY_MASKING',
-        argument: 'Stanford Type A dissection has a 30-day baseline mortality of 30-50% even with immediate repair. Retrograde root rupture occurred during active impulse control therapy.'
+        argument: 'Stanford Type A dissection carries an inherent baseline mortality of 30-50% regardless of surgical timing. Autopsy confirmed extensive cystic medial necrosis and pre-existing 5.8cm ascending aortic aneurysm, predisposing to spontaneous rupture regardless of intervention speed.',
+        clinicalRationale: 'Rupture was an inevitable consequence of extensive pre-existing connective tissue degeneration.'
       }
     }
   ];

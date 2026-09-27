@@ -49,25 +49,37 @@ export interface ClinicalMilestone {
   id: string;
   timestamp: string;
   timeDisplay: string;
+  relativeTimeDelta?: string;
+  phase?: 'PRE_ADMISSION' | 'DIAGNOSTIC_WORKUP' | 'CRITICAL_WINDOW' | 'OPERATIVE_OR' | 'POSTOP_RECOVERY' | 'DETERIORATION_ESCALATION' | 'SECONDARY_INTERVENTION' | 'DISCHARGE_OUTCOME';
   category: EventCategory;
   title: string;
   provider: string;
+  providerRole?: 'ATTENDING' | 'RESIDENT' | 'FELLOW' | 'NURSE' | 'CONSULTANT' | 'ANESTHESIOLOGIST' | 'EMS' | 'HOSPITALIST';
   facilityDepartment: string;
   summary: string;
+  verbatimQuote?: string;
   severity: EventSeverity;
   pageNumber: number;
   batesNumber: string;
+  isLateEntry?: boolean;
+  benchmarkComparison?: {
+    expectedStandard: string;
+    actualTime: string;
+    status: 'COMPLIANT' | 'DELAYED' | 'EXCESSIVE_DELAY';
+  };
   
   // Stance-specific flags
   plaintiffFlag?: {
     isBreach: boolean;
     breachCategory: 'DELAY' | 'COMMUNICATION' | 'MISDIAGNOSIS' | 'DOCUMENTATION_GAP' | 'SURGICAL_ERROR';
     argument: string;
+    standardOfCareRule?: string;
   };
   defenseFlag?: {
     isDefenseAnchor: boolean;
     anchorCategory: 'DOCUMENTED_JUDGMENT' | 'INFORMED_CONSENT' | 'COMPLICATION_MANAGEMENT' | 'COMORBIDITY_MASKING';
     argument: string;
+    clinicalRationale?: string;
   };
 }
 
