@@ -6,24 +6,24 @@ import {
   Upload, 
   FileText, 
   Trash2, 
-  Hash, 
   Layers, 
   Sparkles, 
   CheckCircle, 
   AlertCircle, 
   Search, 
   Eye, 
-  ShieldCheck,
-  Building,
-  User,
-  Calendar,
-  FileCheck,
-  FolderOpen,
-  FolderPlus,
-  Image as ImageIcon,
-  Presentation,
-  Check,
-  AlertTriangle
+  FolderOpen, 
+  FolderPlus, 
+  Image as ImageIcon, 
+  Presentation, 
+  AlertTriangle, 
+  LineChart, 
+  BookOpen, 
+  Scale, 
+  Library, 
+  Gavel, 
+  ArrowRight,
+  FileCheck 
 } from 'lucide-react';
 
 interface DocumentManagerProps {
@@ -32,6 +32,11 @@ interface DocumentManagerProps {
   onAnalyzeRecords: () => void;
   onSelectDocumentForView: (doc: IngestedDocument, page?: number) => void;
   onNavigateToPresentation?: () => void;
+  onNavigateToTimeline?: () => void;
+  onNavigateToSynopsis?: () => void;
+  onNavigateToStance?: () => void;
+  onNavigateToLiterature?: () => void;
+  onOpenSimilarCases?: () => void;
 }
 
 export const DocumentManager: React.FC<DocumentManagerProps> = ({
@@ -39,7 +44,12 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
   onUpdateCase,
   onAnalyzeRecords,
   onSelectDocumentForView,
-  onNavigateToPresentation
+  onNavigateToPresentation,
+  onNavigateToTimeline,
+  onNavigateToSynopsis,
+  onNavigateToStance,
+  onNavigateToLiterature,
+  onOpenSimilarCases
 }) => {
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [processStatus, setProcessStatus] = useState<string>('');
@@ -519,6 +529,213 @@ export const DocumentManager: React.FC<DocumentManagerProps> = ({
           </div>
         </div>
 
+      </div>
+
+      {/* Flagship Medicolegal Action Center */}
+      <div className="bg-gradient-to-br from-slate-900 via-slate-900 to-slate-950 border border-slate-800 rounded-xl p-6 shadow-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 mb-5 border-b border-slate-800 gap-2">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+              <h3 className="text-sm font-bold text-white tracking-wide uppercase">
+                Forensic Analysis & Legal Deliverables Command Center
+              </h3>
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Select an automated medicolegal workstation workflow once medical records are ingested.
+            </p>
+          </div>
+          {currentCase.documents.length === 0 && (
+            <span className="text-[11px] text-amber-400 bg-amber-950/40 border border-amber-800/60 px-2.5 py-1 rounded-md self-start sm:self-auto font-mono">
+              Records Required for Timeline Analysis
+            </span>
+          )}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          
+          {/* Action 1: Graphical Timeline with Dates & Arrows */}
+          <div className="bg-slate-950/70 border border-slate-800 hover:border-cyan-500/60 rounded-xl p-4 flex flex-col justify-between transition-all group hover:bg-slate-900/80">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-lg bg-cyan-950/80 text-cyan-400 border border-cyan-800/60 group-hover:scale-105 transition-transform">
+                  <LineChart className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800/50">
+                  Dates & Arrows
+                </span>
+              </div>
+              <h4 className="text-sm font-bold text-slate-100 group-hover:text-cyan-300 transition-colors">
+                Graphical Timeline (Dates & Arrows)
+              </h4>
+              <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                Generates a forensic chain of events with calendar dates, military times, and directional flow arrows (↓). Highlights treatment intervals and critical delays. Printable directly to courtroom PDF exhibit.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
+              <button
+                onClick={() => {
+                  if (currentCase.milestones.length === 0 && currentCase.documents.length > 0) {
+                    onAnalyzeRecords();
+                  } else if (onNavigateToTimeline) {
+                    onNavigateToTimeline();
+                  }
+                }}
+                disabled={currentCase.documents.length === 0}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-600 text-white text-xs font-semibold shadow-md transition-colors"
+              >
+                <span>Generate & View Timeline</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Action 2: Case Synopsis & Narrative Chronology */}
+          <div className="bg-slate-950/70 border border-slate-800 hover:border-emerald-500/60 rounded-xl p-4 flex flex-col justify-between transition-all group hover:bg-slate-900/80">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-lg bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 group-hover:scale-105 transition-transform">
+                  <BookOpen className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-950 text-emerald-300 border border-emerald-800/50">
+                  Paragraph / Table
+                </span>
+              </div>
+              <h4 className="text-sm font-bold text-slate-100 group-hover:text-emerald-300 transition-colors">
+                Case Synopsis & Narrative Chronology
+              </h4>
+              <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                Produces dual-mode synopsis: continuous executive narrative prose for case briefing and itemized chronology table for trial exhibits. Printable to formal PDF.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
+              <button
+                onClick={onNavigateToSynopsis}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold shadow-md transition-colors"
+              >
+                <span>Generate Case Synopsis</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Action 3: Medical Opinion & Standard of Care */}
+          <div className="bg-slate-950/70 border border-slate-800 hover:border-blue-500/60 rounded-xl p-4 flex flex-col justify-between transition-all group hover:bg-slate-900/80">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-lg bg-blue-950/80 text-blue-400 border border-blue-800/60 group-hover:scale-105 transition-transform">
+                  <Scale className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800/50">
+                  Duty • Breach • Causation
+                </span>
+              </div>
+              <h4 className="text-sm font-bold text-slate-100 group-hover:text-blue-300 transition-colors">
+                Medical Opinion & Standard of Care
+              </h4>
+              <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                Synthesize standard of care determination (MET vs. BREACHED vs. INCONCLUSIVE), 4-part legal test evaluation, and proximate causation analysis.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
+              <button
+                onClick={onNavigateToStance}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold shadow-md transition-colors"
+              >
+                <span>Synthesize Medical Opinion</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Action 4: Similar Cases Search Box */}
+          <div className="bg-slate-950/70 border border-slate-800 hover:border-purple-500/60 rounded-xl p-4 flex flex-col justify-between transition-all group hover:bg-slate-900/80">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-lg bg-purple-950/80 text-purple-400 border border-purple-800/60 group-hover:scale-105 transition-transform">
+                  <Gavel className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-purple-950 text-purple-300 border border-purple-800/50">
+                  Precedent Vault
+                </span>
+              </div>
+              <h4 className="text-sm font-bold text-slate-100 group-hover:text-purple-300 transition-colors">
+                Similar Previous Cases Search
+              </h4>
+              <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                Search precedent medical malpractice cases, defense & plaintiff verdicts, standard of care benchmarks, and judicial case briefs.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
+              <button
+                onClick={onOpenSimilarCases}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-xs font-semibold shadow-md transition-colors"
+              >
+                <Search className="w-3.5 h-3.5" />
+                <span>Search Similar Precedents</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Action 5: Medical Literature Search */}
+          <div className="bg-slate-950/70 border border-slate-800 hover:border-amber-500/60 rounded-xl p-4 flex flex-col justify-between transition-all group hover:bg-slate-900/80">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-lg bg-amber-950/80 text-amber-400 border border-amber-800/60 group-hover:scale-105 transition-transform">
+                  <Library className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800/50">
+                  Live PubMed API
+                </span>
+              </div>
+              <h4 className="text-sm font-bold text-slate-100 group-hover:text-amber-300 transition-colors">
+                Medical Literature & Guidelines
+              </h4>
+              <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                Perform live NCBI PubMed searches for clinical practice guidelines, trial studies, and standard of care consensus papers tailored to the matter.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
+              <button
+                onClick={onNavigateToLiterature}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-amber-600 hover:bg-amber-500 text-white text-xs font-semibold shadow-md transition-colors"
+              >
+                <Library className="w-3.5 h-3.5" />
+                <span>Search Case Literature</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Action 6: 20-Slide Presentation Deck */}
+          <div className="bg-slate-950/70 border border-slate-800 hover:border-indigo-500/60 rounded-xl p-4 flex flex-col justify-between transition-all group hover:bg-slate-900/80">
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2.5 rounded-lg bg-indigo-950/80 text-indigo-400 border border-indigo-800/60 group-hover:scale-105 transition-transform">
+                  <Presentation className="w-5 h-5" />
+                </div>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/50">
+                  Courtroom PPTX
+                </span>
+              </div>
+              <h4 className="text-sm font-bold text-slate-100 group-hover:text-indigo-300 transition-colors">
+                20-Slide Courtroom Presentation
+              </h4>
+              <p className="text-xs text-slate-400 mt-2 leading-relaxed">
+                Review and export the auto-generated 20-slide visual slide deck with case timeline, standard of care critique, and Bates citations.
+              </p>
+            </div>
+            <div className="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between">
+              <button
+                onClick={onNavigateToPresentation}
+                className="w-full flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md transition-colors"
+              >
+                <Presentation className="w-3.5 h-3.5" />
+                <span>Open Presentation Deck</span>
+              </button>
+            </div>
+          </div>
+
+        </div>
       </div>
 
       {/* Ingested Documents Table */}

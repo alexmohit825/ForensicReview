@@ -155,5 +155,31 @@ export const FORENSIC_GUIDES: Record<string, SectionGuide> = {
       'Never allow opposing counsel to put words in your mouth; rephrase and correct inaccurate restatements immediately.'
     ],
     standardOfCareBenchmark: 'The credible expert witness remains calm, dispassionate, and unshakeably anchored in the contemporaneous medical facts.'
+  },
+
+  literature: {
+    sectionId: 'literature',
+    title: 'Medical Literature & Practice Guidelines Forensic Guide',
+    subtitle: 'Peer-reviewed evidence grounding, Daubert/Frye admissibility, and authoritative consensus',
+    coreObjective: 'Anchor medical expert opinions in authoritative peer-reviewed journals, clinical practice guidelines, and randomized trials published prior to or contemporaneous with the incident date.',
+    forensicChecklist: [
+      'Contemporaneous Standard: Verify that cited guidelines and studies were published BEFORE the incident date (avoids retroactive duty imposition).',
+      'Hierarchy of Evidence: Prioritize systematic reviews, specialty society consensus guidelines (AANS/CNS, ACC/AHA), and multi-center RCTs over case reports.',
+      'Daubert / Frye Compliance: Ensure scientific methodology is generally accepted within the relevant medical community.',
+      'Search Completeness: Audit PubMed for both supporting and opposing clinical literature to anticipate cross-examination.',
+      'Specific Clinical Nuance: Match patient clinical criteria (e.g. comorbidities, presenting vitals) to the inclusion criteria of cited literature.'
+    ],
+    legalTrapsToAvoid: [
+      'Citing post-incident guidelines to establish a breach at the time care was rendered (retroactive standard).',
+      'Cherry-picking isolated case reports that contradict mainstream specialty society guidelines.',
+      'Treating advisory clinical practice guidelines as rigid statutory mandates rather than clinical recommendations.',
+      'Failing to disclose recognized treatises and textbook authorities when asked during Rule 26 disclosures.'
+    ],
+    expertDepositionTips: [
+      'State clearly: "Guidelines inform clinical judgment, but clinical care is tailored to the individual bedside presentation."',
+      'Bring copies of the key landmark trials and guidelines with your highlighted passages into the deposition room.',
+      'If confronted with contrary literature by opposing counsel, evaluate the study design, sample size, and date of publication before answering.'
+    ],
+    standardOfCareBenchmark: 'Under Daubert and Federal Rule of Evidence 702, medical opinions must be grounded in reliable, peer-reviewed scientific methodology widely accepted in the specialty.'
   }
 };

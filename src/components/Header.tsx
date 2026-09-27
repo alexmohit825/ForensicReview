@@ -13,7 +13,9 @@ import {
   Compass,
   AlertTriangle,
   Presentation,
-  FolderOpen
+  FolderOpen,
+  Library,
+  Gavel
 } from 'lucide-react';
 
 interface HeaderProps {
@@ -26,6 +28,7 @@ interface HeaderProps {
   onToggleGuide: () => void;
   onNewCase: () => void;
   onOpenCaseDirectory: () => void;
+  onOpenSimilarCases: () => void;
   caseCount: number;
   onLoadBenchmark: () => void;
   hasDocuments: boolean;
@@ -41,6 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleGuide,
   onNewCase,
   onOpenCaseDirectory,
+  onOpenSimilarCases,
   caseCount,
   onLoadBenchmark,
   hasDocuments
@@ -116,6 +120,16 @@ export const Header: React.FC<HeaderProps> = ({
             <span>Forensic Guide</span>
           </button>
 
+          {/* Similar Cases Vault Trigger */}
+          <button
+            onClick={onOpenSimilarCases}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-950/70 text-purple-300 border border-purple-800/80 hover:bg-purple-900 transition-colors shadow-sm"
+            title="Search Med-Mal Precedent Cases & Judicial Benchmarks"
+          >
+            <Gavel className="w-4 h-4 text-purple-400" />
+            <span>Similar Cases Vault</span>
+          </button>
+
           {/* Case Directory Trigger */}
           <button
             onClick={onOpenCaseDirectory}
@@ -173,7 +187,7 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           <LineChart className="w-3.5 h-3.5" />
-          <span>2. Graphic Timeline & Hemodynamics</span>
+          <span>2. Directional Timeline & Arrows</span>
         </button>
 
         <button
@@ -197,7 +211,19 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           <BookOpen className="w-3.5 h-3.5" />
-          <span>4. Clinical Synopsis & Standard of Care</span>
+          <span>4. Case Synopsis & Chronology</span>
+        </button>
+
+        <button
+          onClick={() => onSelectTab('literature')}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-colors whitespace-nowrap ${
+            activeTab === 'literature'
+              ? 'bg-slate-800 text-amber-300 font-semibold border border-amber-500/40'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-850'
+          }`}
+        >
+          <Library className="w-3.5 h-3.5 text-amber-400" />
+          <span>5. Medical Literature & Guidelines</span>
         </button>
 
         <button
@@ -209,7 +235,7 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           <AlertTriangle className="w-3.5 h-3.5 text-amber-400" />
-          <span>5. Deposition & Cross-Exam Prep</span>
+          <span>6. Deposition & Cross-Exam Prep</span>
         </button>
 
         <button
@@ -221,7 +247,7 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           <Presentation className="w-3.5 h-3.5 text-blue-300" />
-          <span>6. 20-Slide PPT Presentation</span>
+          <span>7. Courtroom Presentation</span>
         </button>
 
         <button
@@ -233,7 +259,7 @@ export const Header: React.FC<HeaderProps> = ({
           }`}
         >
           <Printer className="w-3.5 h-3.5 text-cyan-400" />
-          <span>7. Formal Court Report</span>
+          <span>8. Formal Court Report</span>
         </button>
       </div>
     </header>

@@ -14,6 +14,8 @@ import { PresentationViewer } from './components/PresentationViewer';
 import { ReportExportView } from './components/ReportExportView';
 import { DocumentViewerModal } from './components/DocumentViewerModal';
 import { CaseDirectoryModal } from './components/CaseDirectoryModal';
+import { LiteratureSearchTab } from './components/LiteratureSearchTab';
+import { SimilarCasesModal } from './components/SimilarCasesModal';
 
 const CASES_CATALOG_STORAGE_KEY = 'forensicreview_cases_catalog_v2';
 const ACTIVE_CASE_ID_STORAGE_KEY = 'forensicreview_active_case_id_v2';
@@ -51,6 +53,7 @@ export const App: React.FC = () => {
   const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
   const [guideSectionId, setGuideSectionId] = useState<string>('ingestion');
   const [isCaseDirectoryOpen, setIsCaseDirectoryOpen] = useState<boolean>(false);
+  const [isSimilarCasesOpen, setIsSimilarCasesOpen] = useState<boolean>(false);
 
   // Document Viewer Modal State
   const [viewerState, setViewerState] = useState<{
@@ -267,6 +270,7 @@ export const App: React.FC = () => {
         onToggleGuide={() => handleOpenFullGuide(activeTab)}
         onNewCase={handleCreateNewCase}
         onOpenCaseDirectory={() => setIsCaseDirectoryOpen(true)}
+        onOpenSimilarCases={() => setIsSimilarCasesOpen(true)}
         caseCount={cases.length}
         onLoadBenchmark={handleLoadBenchmark}
         hasDocuments={currentCase.documents.length > 0}
@@ -282,6 +286,11 @@ export const App: React.FC = () => {
             onAnalyzeRecords={handleAnalyzeRecords}
             onSelectDocumentForView={(doc, page) => handleOpenDocViewer(doc, page || 1)}
             onNavigateToPresentation={() => setActiveTab('presentation')}
+            onNavigateToTimeline={() => setActiveTab('timeline')}
+            onNavigateToSynopsis={() => setActiveTab('synopsis')}
+            onNavigateToStance={() => setActiveTab('stance')}
+            onNavigateToLiterature={() => setActiveTab('literature')}
+            onOpenSimilarCases={() => setIsSimilarCasesOpen(true)}
           />
         )}
 
@@ -311,6 +320,14 @@ export const App: React.FC = () => {
             stance={stance}
             onOpenFullGuide={() => handleOpenFullGuide('synopsis')}
             onUpdateCase={handleUpdateCase}
+          />
+        )}
+
+        {activeTab === 'literature' && (
+          <LiteratureSearchTab
+            currentCase={currentCase}
+            stance={stance}
+            onOpenFullGuide={() => handleOpenFullGuide('literature')}
           />
         )}
 
@@ -352,6 +369,13 @@ export const App: React.FC = () => {
         onCreateNewCase={handleCreateNewCase}
         onDeleteCase={handleDeleteCase}
         onDownloadArtifact={handleDownloadArtifact}
+      />
+
+      {/* Similar Previous Cases & Precedent Vault Modal */}
+      <SimilarCasesModal
+        isOpen={isSimilarCasesOpen}
+        onClose={() => setIsSimilarCasesOpen(false)}
+        currentCaseTopic={currentCase.caseName}
       />
 
       {/* Toggleable Forensic Protocol & Legal Guide Drawer */}

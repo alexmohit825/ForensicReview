@@ -32,7 +32,9 @@ import {
   ExternalLink,
   SlidersHorizontal,
   Timer,
-  FileCheck
+  FileCheck,
+  ArrowDown,
+  ArrowRight
 } from 'lucide-react';
 
 interface GraphicTimelineProps {
@@ -372,7 +374,7 @@ export const GraphicTimeline: React.FC<GraphicTimelineProps> = ({
                 </p>
               </div>
             ) : (
-              <div className="relative pl-6 sm:pl-8 border-l-2 border-slate-800 space-y-8 before:absolute before:top-0 before:bottom-0 before:-left-[2px] before:w-[2px] before:bg-gradient-to-b before:from-cyan-500 before:via-blue-600 before:to-slate-800">
+              <div className="relative pl-6 sm:pl-8 border-l-2 border-slate-800 space-y-6 before:absolute before:top-0 before:bottom-0 before:-left-[2px] before:w-[2px] before:bg-gradient-to-b before:from-cyan-500 before:via-blue-600 before:to-slate-800">
                 {filteredMilestones.map((m, index) => {
                   const catBadge = getCategoryBadge(m.category);
                   const sev = getSeverityIndicator(m.severity);
@@ -381,19 +383,32 @@ export const GraphicTimeline: React.FC<GraphicTimelineProps> = ({
                   const isAnchor = m.defenseFlag?.isDefenseAnchor;
 
                   return (
-                    <div 
-                      key={m.id} 
-                      className="relative group cursor-pointer"
-                      onClick={() => setSelectedMilestone(m)}
-                    >
-                      {/* Timeline Node Point on Left Spine */}
-                      <div className={`absolute -left-[31px] sm:-left-[39px] top-4 w-4 h-4 rounded-full border-2 border-slate-950 transition-all ${
-                        isBreach 
-                          ? 'bg-red-500 ring-4 ring-red-500/20' 
-                          : isAnchor 
-                          ? 'bg-blue-500 ring-4 ring-blue-500/20' 
-                          : 'bg-cyan-500 ring-4 ring-cyan-500/20'
-                      } ${isSelected ? 'scale-125 ring-8 ring-cyan-500/30' : ''}`} />
+                    <React.Fragment key={m.id}>
+                      {/* Directional Flow Arrow Connecting Sequential Chronological Events */}
+                      {index > 0 && (
+                        <div className="relative -ml-6 sm:-ml-8 flex items-center gap-3 my-4 pl-4">
+                          <div className="flex items-center gap-2 px-3.5 py-1 rounded-full bg-slate-950 border border-cyan-500/60 shadow-lg text-cyan-300 font-mono text-xs">
+                            <ArrowDown className="w-3.5 h-3.5 text-cyan-400 animate-bounce" />
+                            <span className="font-bold text-[11px] tracking-wide">
+                              {m.relativeTimeDelta ? `TIME FLOW: ${m.relativeTimeDelta}` : 'NEXT EVENT'}
+                            </span>
+                          </div>
+                          <div className="h-[2px] flex-1 bg-gradient-to-r from-cyan-500 via-cyan-800 to-transparent" />
+                        </div>
+                      )}
+
+                      <div 
+                        className="relative group cursor-pointer"
+                        onClick={() => setSelectedMilestone(m)}
+                      >
+                        {/* Timeline Node Point on Left Spine */}
+                        <div className={`absolute -left-[31px] sm:-left-[39px] top-4 w-4 h-4 rounded-full border-2 border-slate-950 transition-all ${
+                          isBreach 
+                            ? 'bg-red-500 ring-4 ring-red-500/20' 
+                            : isAnchor 
+                            ? 'bg-blue-500 ring-4 ring-blue-500/20' 
+                            : 'bg-cyan-500 ring-4 ring-cyan-500/20'
+                        } ${isSelected ? 'scale-125 ring-8 ring-cyan-500/30' : ''}`} />
 
                       {/* Event Fact Card */}
                       <div className={`bg-slate-900 border rounded-2xl p-5 shadow-xl transition-all ${
@@ -550,6 +565,7 @@ export const GraphicTimeline: React.FC<GraphicTimelineProps> = ({
 
                       </div>
                     </div>
+                    </React.Fragment>
                   );
                 })}
               </div>
