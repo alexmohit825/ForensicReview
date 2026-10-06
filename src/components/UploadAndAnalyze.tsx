@@ -78,7 +78,7 @@ export const UploadAndAnalyze: React.FC<UploadAndAnalyzeProps> = ({
           Forensic Record Review & Causation
         </h1>
         <p className="text-base text-slate-600 max-w-2xl mx-auto">
-          Drop clinical charts, operative notes, and radiology reads. Google Gemini 2.5 Pro reads the records to deliver your 5 courtroom deliverables in seconds.
+          Drop clinical charts, operative notes, and radiology reads. Google Gemini AI reads the records to deliver your 5 courtroom deliverables in seconds.
         </p>
       </div>
 
@@ -182,12 +182,12 @@ export const UploadAndAnalyze: React.FC<UploadAndAnalyzeProps> = ({
             {isLoading ? (
               <div className="flex items-center gap-2">
                 <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                <span>{statusMessage || 'Analyzing records with Gemini 2.5 Pro...'}</span>
+                <span>{statusMessage || 'Analyzing records with Gemini AI...'}</span>
               </div>
             ) : (
               <>
                 <Sparkles className="w-4 h-4" />
-                <span>Analyze Clinical Records with Gemini 2.5 Pro</span>
+                <span>Analyze Clinical Records with Gemini AI</span>
                 <ArrowRight className="w-4 h-4 ml-1" />
               </>
             )}

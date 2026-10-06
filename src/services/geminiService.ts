@@ -62,7 +62,7 @@ export async function analyzeRecordsWithGemini(
   }
 
   if (onStatusUpdate) {
-    onStatusUpdate('Reading clinical records with Google Gemini 2.5 Pro...');
+    onStatusUpdate('Reading clinical records with Google Gemini AI...');
   }
 
   const parts: any[] = [];
@@ -103,11 +103,15 @@ export async function analyzeRecordsWithGemini(
   }
 
   if (onStatusUpdate) {
-    onStatusUpdate('Gemini 2.5 Pro is analyzing causation, Washington eggshell skull law, and formulating opinion...');
+    onStatusUpdate('Gemini AI is analyzing causation, Washington eggshell skull law, and formulating opinion...');
   }
 
-  // Use Gemini 2.5 Pro endpoint with structured JSON output
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`;
+  // Model cascade: Primary frontier model gemini-3.1-pro-preview, with fallback to gemini-2.5-flash and gemini-2.0-flash
+  const candidateModels = [
+    'gemini-3.1-pro-preview',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash'
+  ];
 
   const requestPayload = {
     contents: [
@@ -122,25 +126,46 @@ export async function analyzeRecordsWithGemini(
     }
   };
 
-  const response = await fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-goog-api-key': apiKey.trim()
-    },
-    body: JSON.stringify(requestPayload)
-  });
+  let rawText: string | null = null;
+  let lastErrorMsg = '';
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`Gemini API Error (${response.status}): ${errorBody}`);
+  for (const model of candidateModels) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
+    try {
+      if (onStatusUpdate) {
+        onStatusUpdate(`Analyzing clinical records with Google ${model}...`);
+      }
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey.trim()
+        },
+        body: JSON.stringify(requestPayload)
+      });
+
+      if (!response.ok) {
+        const errorBody = await response.text();
+        lastErrorMsg = `Gemini API (${model} - HTTP ${response.status}): ${errorBody}`;
+        console.warn(`Model ${model} returned error:`, errorBody);
+        // Continue to fallback model if 404 (model not found/deprecated) or 400/503
+        continue;
+      }
+
+      const resultJson = await response.json();
+      const textCandidate = resultJson.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (textCandidate) {
+        rawText = textCandidate;
+        break;
+      }
+    } catch (err: unknown) {
+      console.warn(`Request failed with model ${model}:`, err);
+      lastErrorMsg = err instanceof Error ? err.message : String(err);
+    }
   }
 
-  const resultJson = await response.json();
-  const rawText = resultJson.candidates?.[0]?.content?.parts?.[0]?.text;
-
   if (!rawText) {
-    throw new Error('Gemini API returned an empty response. Please verify the uploaded records.');
+    throw new Error(lastErrorMsg || 'Gemini API was unable to generate a response across available models. Please verify your API key and file contents.');
   }
 
   if (onStatusUpdate) {

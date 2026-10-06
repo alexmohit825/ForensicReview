@@ -39,7 +39,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
               <Key className="w-4 h-4" />
             </div>
             <h3 className="font-bold text-slate-900 text-sm">
-              Google Gemini 2.5 Pro API Key
+              Google Gemini API Key
             </h3>
           </div>
           <button
@@ -51,7 +51,7 @@ export const ApiKeyModal: React.FC<ApiKeyModalProps> = ({
         </div>
 
         <p className="text-xs text-slate-600 leading-relaxed">
-          ForensicReview uses Google Gemini 2.5 Pro's 2-million-token context window to read entire patient hospital records and synthesize Washington legal causation.
+          ForensicReview uses Google Gemini 3.1 Pro's frontier 2-million-token context window to read entire patient hospital records and synthesize Washington legal causation.
         </p>
 
         <form onSubmit={handleSave} className="space-y-4">

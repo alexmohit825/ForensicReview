@@ -73,7 +73,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               title="Configure Google Gemini API Key"
             >
               <Key className="w-3.5 h-3.5 text-slate-500" />
-              <span>{hasApiKey ? 'Gemini 2.5 Pro Key' : 'Enter Gemini Key'}</span>
+              <span>{hasApiKey ? 'Gemini Key Active' : 'Enter Gemini Key'}</span>
               {hasApiKey && <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />}
             </button>
 
