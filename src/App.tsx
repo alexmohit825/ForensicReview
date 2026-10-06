@@ -13,9 +13,10 @@ import { Deliverable2Causation } from './components/Deliverable2Causation';
 import { Deliverable3Timeline } from './components/Deliverable3Timeline';
 import { Deliverable4Presentation } from './components/Deliverable4Presentation';
 import { Deliverable5Literature } from './components/Deliverable5Literature';
+import { Deliverable6DepositionPrep } from './components/Deliverable6DepositionPrep';
 import { ApiKeyModal } from './components/ApiKeyModal';
 
-const ACTIVE_ANALYSIS_STORAGE_KEY = 'forensicreview_active_analysis_v3';
+const ACTIVE_ANALYSIS_STORAGE_KEY = 'forensicreview_active_analysis_v4';
 
 export const App: React.FC = () => {
   const [caseAnalysis, setCaseAnalysis] = useState<MedicolegalCaseAnalysis | null>(() => {
@@ -148,6 +149,14 @@ export const App: React.FC = () => {
               <Deliverable5Literature
                 literature={caseAnalysis.deliverable5_literature}
                 patientInfo={caseAnalysis.patientInfo}
+              />
+            )}
+
+            {activeTab === 6 && (
+              <Deliverable6DepositionPrep
+                caseData={caseAnalysis}
+                onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
+                hasApiKey={hasApiKey}
               />
             )}
           </div>

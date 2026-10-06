@@ -47,6 +47,20 @@ You MUST produce EXACTLY the following 5 Deliverables:
    - "verbatimExcerpt": The exact verbatim quote from the physician's chart
    - "clinicalSignificance": Why this note proves causation, breach, or damages
 5. Literature Support List: EXACTLY 5 very high quality, peer-reviewed clinical/medical journal articles (e.g., from Spine, JNS, NEJM, Lancet, J Gen Intern Med) specifically supporting your causation opinion and standard of care conclusions.
+6. Deposition Prep & Adversarial Cross-Examination Attack Strategy: Anticipate how opposing counsel (defense if plaintiff expert, or plaintiff if defense expert) will attack the expert during deposition. Provide:
+   - "expertRole": "PLAINTIFF" (default)
+   - "plaintiffSpecificStrategy": Strategic roadmap when retained by Plaintiff (proving traumatic aggravation under Washington WPI 30.17 Eggshell Skull, rebutting degenerative defense arguments, tying MRI/EMG to collision date).
+   - "defenseSpecificStrategy": Strategic roadmap when retained by Defense (highlighting pre-existing degeneration, biomechanical delta-V thresholds, gaps in care, lack of objective motor deficits).
+   - "goldenRulesForDeposition": 5 concise non-negotiable rules for the witness stand (e.g. "Do not adopt opposing counsel's adjectives", "Anchor every answer on TRA MRI and EMG objective findings").
+   - "crossExaminationVulnerabilities": Array of 4 to 6 specific attack angles, each containing:
+       - "id": string
+       - "category": ("PRE_EXISTING_CONDITIONS" | "MECHANISM_OF_INJURY" | "OBJECTIVE_VS_SUBJECTIVE" | "GAP_IN_CARE" | "SURGICAL_NECESSITY" | "CREDIBILITY_BIAS")
+       - "opposingCounselAngle": Exact rhetorical trap or attack theory
+       - "likelyQuestions": Array of 2-3 aggressive deposition trap questions
+       - "recommendedResponse": Exact high-level neurosurgical script to dismantle the attack
+       - "trapToAvoid": What concession counsel is baiting
+       - "keyRecordCitations": Array of specific dates/findings in this file to cite
+       - "supportingLiterature": Key peer-reviewed defense to cite
 
 Output MUST be valid JSON adhering strictly to the requested schema.
 `;
@@ -204,7 +218,20 @@ export async function analyzeRecordsWithGemini(
     },
     deliverable3_timeline: parsed.deliverable3_timeline || parsed.timelineEvents || [],
     deliverable4_presentationSlides: parsed.deliverable4_presentationSlides || parsed.presentationSlides || [],
-    deliverable5_literature: parsed.deliverable5_literature || parsed.literatureList || []
+    deliverable5_literature: parsed.deliverable5_literature || parsed.literatureList || [],
+    deliverable6_depositionPrep: parsed.deliverable6_depositionPrep ? {
+      expertRole: parsed.deliverable6_depositionPrep.expertRole || 'PLAINTIFF',
+      plaintiffSpecificStrategy: parsed.deliverable6_depositionPrep.plaintiffSpecificStrategy || '',
+      defenseSpecificStrategy: parsed.deliverable6_depositionPrep.defenseSpecificStrategy || '',
+      goldenRulesForDeposition: parsed.deliverable6_depositionPrep.goldenRulesForDeposition || [
+        'Never adopt opposing counsel’s characterizations or loaded adjectives.',
+        'Always tie every opinion back to objective findings: high-resolution TRA MRI, positive EMG, and motor exam.',
+        'Acknowledge pre-existing asymptomatic degeneration readily under Washington WPI 30.17 Eggshell Skull doctrine.',
+        'Do not speculate beyond your review of the documented medical record.',
+        'Pause before answering to permit retaining counsel the opportunity to lodge formal objections.'
+      ],
+      crossExaminationVulnerabilities: parsed.deliverable6_depositionPrep.crossExaminationVulnerabilities || []
+    } : undefined
   };
 
   return analysis;
@@ -457,6 +484,201 @@ export function getQuinonezDemoCase(): MedicolegalCaseAnalysis {
         relevanceToCase: 'Directly supports the clinical rationale for C5-C6 disc replacement in a 36-year-old patient.',
         pubmedUrl: 'https://pubmed.ncbi.nlm.nih.gov/33580210/'
       }
-    ]
+    ],
+    deliverable6_depositionPrep: {
+      expertRole: 'PLAINTIFF',
+      plaintiffSpecificStrategy: 'As the retained expert for Plaintiff Holly Quinonez, your primary objective is to prove that the June 15, 2020 collision was the proximate cause of her disabling right L5 radiculopathy and progressive cervical symptoms. Anchor on Washington Pattern Jury Instruction 30.17 (Eggshell Skull Doctrine): even if pre-existing spondylosis was present, she was completely asymptomatic and functioning without restriction prior to collision. Ground your testimony in objective benchmarks: TRA MRI demonstrating L5-S1 disc protrusion with L5 nerve root impingement, EMA EMG proving active motor axonal irritation (fibrillations in tibialis anterior), and concordant relief with targeted TFESI.',
+      defenseSpecificStrategy: 'If opposing or scrutinizing this case from the Defense posture, counsel will argue that lumbar disc degeneration and C3-C6 spondylosis are ubiquitous age-related findings, that the impact was low-velocity (delta-V insufficient to cause acute disc rupture), and that subjective complaints in 2020 did not immediately document frank radicular leg pain until several months post-incident. As a defense expert, one would scrutinize the absence of immediate hospital ER imaging and emphasize pre-collision degenerative substrate.',
+      goldenRulesForDeposition: [
+        'Rule 1: Never adopt opposing counsel’s characterizations, loaded adjectives, or hypothetical extremes.',
+        'Rule 2: Readily concede that degenerative changes existed prior to the collision under Washington WPI 30.17 Eggshell Skull doctrine, but emphasize they were completely dormant and non-disabling until traumatically activated.',
+        'Rule 3: Anchor every causation opinion on objective anatomical and electrodiagnostic proof (TRA MRI + EMA EMG + physical exam motor deficits), not patient subjective pain scores.',
+        'Rule 4: When pressed on low property damage or vehicle speed, explain that biomechanical torsional shear forces on a rotated torso produce annular tears regardless of bumper scratch depth.',
+        'Rule 5: Always pause 2–3 seconds before answering to allow retaining counsel time to state objections on the record.'
+      ],
+      crossExaminationVulnerabilities: [
+        {
+          id: 'atk-1',
+          category: 'PRE_EXISTING_CONDITIONS',
+          opposingCounselAngle: 'Opposing counsel will argue that the MRI shows degenerative disc disease and spondylosis that took years or decades to develop and existed long before the June 15, 2020 motor vehicle collision.',
+          likelyQuestions: [
+            '"Doctor, an MRI does not show the date an injury occurred, correct?"',
+            '"Isn\'t it true that disc desiccation, facet arthropathy, and spurring are chronic degenerative processes that took years to develop prior to 2020?"',
+            '"So Ms. Quinonez already had a diseased, degenerated spine before defendant ever touched her car?"'
+          ],
+          recommendedResponse: '"Counsel, degenerative disc desiccation is a normal aging substrate present in a significant percentage of asymptomatic adults. However, prior to June 15, 2020, Ms. Quinonez had zero clinical radiculopathy, zero nerve root compression, and zero limitations across years of medical records. Under standard neurosurgical principles and Washington law, trauma superimposed on a stable spine produces acute annular shear and transforms a silent, stable condition into an acutely compressive, symptomatic radiculopathy. The collision was the proximate cause of her clinical pathology."',
+          trapToAvoid: 'Do not claim the degenerative wear-and-tear itself was created on June 15, 2020. Acknowledge pre-existing asymptomatic degeneration immediately, then pivot to traumatic activation and disc protrusion.',
+          keyRecordCitations: ['2013–2020 Zero Prior Treatment Record', '2023-02-07 TRA MRI focal right L5-S1 protrusion', 'WPI 30.17 Eggshell Skull Instruction'],
+          supportingLiterature: 'Clark et al., J Gen Intern Med 2020 (Trauma-Induced Acceleration of Asymptomatic Pre-Existing Spondylosis)'
+        },
+        {
+          id: 'atk-2',
+          category: 'MECHANISM_OF_INJURY',
+          opposingCounselAngle: 'Opposing counsel will attack the force vector, claiming that a minor rear-end impact at 25 mph cannot cause a herniated lumbar disc.',
+          likelyQuestions: [
+            '"Doctor, you weren’t in the vehicle on June 15, 2020, were you?"',
+            '"The bumper damage was modest. Are you telling this jury that a low-speed fender bender exerted enough force to tear a spinal disc?"'
+          ],
+          recommendedResponse: '"Counsel, vehicle property damage does not correlate linearly with human biomechanical spinal loading. The clinical record specifically documents that Ms. Quinonez was stopped with her head and torso rotated to the right while parallel parking. As biomechanical spine literature demonstrates, rotation pre-stresses the annulus fibrosus, reducing tensile tolerance by up to 50%. A rear impact under rotational shear produces acute annular tearing and disc extrusion even at modest velocities."',
+          trapToAvoid: 'Do not debate vehicle repair repair invoices or crush depth. Anchor on patient posture, rotational shear, and human spine tolerance curves.',
+          keyRecordCitations: ['June 15, 2020 Collision Report & HPI', 'Documented Torso Rotation while Parallel Parking'],
+          supportingLiterature: 'Spine biomechanics literature on coupled rotational shear and axial pre-tension.'
+        },
+        {
+          id: 'atk-3',
+          category: 'OBJECTIVE_VS_SUBJECTIVE',
+          opposingCounselAngle: 'Opposing counsel will claim the patient’s symptoms are entirely subjective complaints influenced by secondary gain and litigation.',
+          likelyQuestions: [
+            '"Pain is subjective, isn’t it Doctor? You cannot see pain, you have to take the plaintiff’s word for it?"',
+            '"If she exaggerates her symptoms to her lawyers, your opinion would be based on inaccurate information, wouldn’t it?"'
+          ],
+          recommendedResponse: '"Counsel, my opinion is not based merely on subjective self-reports. It is grounded in immutable objective testing: first, the EMA EMG of November 8, 2022, which documented involuntary fibrillations and positive sharp waves in the right tibialis anterior that cannot be faked; second, the TRA MRI demonstrating right L5 nerve root compression; and third, objective physical exam documentation of diminished right EHL strength and sensory deficits conforming exactly to an L5 dermatome."',
+          trapToAvoid: 'Never concede that the case relies solely on patient credibility. Point directly to the abnormal electrodiagnostic EMG study and neuroforaminal MRI cuts.',
+          keyRecordCitations: ['2022-11-08 EMA EMG Fibrillations / Positive Sharp Waves', '2023-04-19 NeoSpine EHL weakness'],
+          supportingLiterature: 'Tong et al., Arch Phys Med Rehabil 2022 (92% Specificity of EMG in Axonal Motor Loss)'
+        },
+        {
+          id: 'atk-4',
+          category: 'GAP_IN_CARE',
+          opposingCounselAngle: 'Opposing counsel will exploit periods where patient did not receive active therapy or delayed seeking specialist care.',
+          likelyQuestions: [
+            '"Doctor, why did Ms. Quinonez wait months between physical therapy discharge and seeing an interventional specialist?"',
+            '"If her pain was truly unbearable, wouldn’t an ordinary person go straight to the emergency room or neurosurgeon?"'
+          ],
+          recommendedResponse: '"Counsel, Ms. Quinonez followed the textbook medical model of conservative stepped escalation. Standard neurosurgical guidelines mandate attempting conservative care—including physical therapy and chiropractic treatment—before pursuing invasive interventional injections or surgical consultation. Her course demonstrated patient endurance and compliance with evidence-based conservative trials before escalating to neurosurgical decompression."',
+          trapToAvoid: 'Do not become defensive about time intervals. Frame conservative trials as prudent, guideline-directed medical management that rules out spontaneous resolution.',
+          keyRecordCitations: ['Sound Physical Therapy 12-week course', 'Stepped escalation from oral Medrol to TFESI'],
+          supportingLiterature: 'EANS Guidelines 2021 (6–12 weeks conservative trial prior to surgical intervention)'
+        },
+        {
+          id: 'atk-5',
+          category: 'SURGICAL_NECESSITY',
+          opposingCounselAngle: 'Opposing counsel will argue that surgery is premature, unnecessary, or being driven by personal injury counsel.',
+          likelyQuestions: [
+            '"You are a spine surgeon, Doctor. Isn’t it true that surgeons make money by operating?"',
+            '"Ms. Quinonez managed for nearly three years without surgery. That proves she doesn’t truly need an operation today, doesn’t it?"'
+          ],
+          recommendedResponse: '"Counsel, surgery was not rushed; in fact, over 36 months of exhaustive conservative therapy were completed without lasting resolution. When a patient demonstrates objective L5 radiculopathy with persistent motor weakness, concordant relief from targeted transforaminal diagnostic injections, and failure of conservative management, surgical microdiscectomy is universally recognized by neurosurgical consensus guidelines as the definitive standard of care to prevent permanent neurological deficit."',
+          trapToAvoid: 'Do not argue or take financial accusations personally. Re-orient to standard evidence-based guidelines and prevention of permanent axonal nerve injury.',
+          keyRecordCitations: ['2023-05-18 TFESI concordant relief', '2023-06-21 Surgical Recommendation Note'],
+          supportingLiterature: 'MacVicar et al., Spine J 2019 (>90% Predictive Value of Targeted TFESI)'
+        }
+      ]
+    }
   };
+}
+
+// Interactive Gemini function to ask custom deposition questions or simulate adversarial cross-examination
+export async function askDepositionQuestionWithGemini(
+  question: string,
+  expertRole: 'PLAINTIFF' | 'DEFENSE',
+  caseAnalysis: MedicolegalCaseAnalysis,
+  apiKey: string
+): Promise<{
+  answer: string;
+  opposingCounselTrap: string;
+  keyEvidentiaryPoints: string[];
+  recommendedCitations: string[];
+}> {
+  if (!apiKey) {
+    throw new Error('Gemini API key is required to query Deposition Prep.');
+  }
+
+  const prompt = `
+You are a premier Medicolegal Trial Consultant and Board-Certified Neurosurgeon Expert Witness.
+You are preparing Dr. A. Alex Mohit, MD, PhD for a high-stakes videotaped expert deposition.
+
+ACTIVE CASE DATA:
+Patient: ${caseAnalysis.patientInfo.patientName} (Age ${caseAnalysis.patientInfo.patientAge || 'Unknown'})
+Incident: ${caseAnalysis.patientInfo.dateOfIncident}
+Caption: ${caseAnalysis.patientInfo.caseCaption}
+Doctor's Medical Opinion: ${caseAnalysis.deliverable2_causation.formalMedicalOpinion}
+Biomechanical Causation: ${caseAnalysis.deliverable2_causation.biomechanicalCausation}
+Eggshell Skull / Washington WPI 30.17 Analysis: ${caseAnalysis.deliverable2_causation.eggshellSkullAnalysis}
+Key Timeline Excerpts: ${caseAnalysis.deliverable3_timeline.slice(0, 8).map(e => `${e.date} (${e.clinicVisit}): ${e.oneSentenceDescription}`).join('; ')}
+
+DOCTOR'S RETAINED ROLE:
+Dr. Mohit is retained as an Expert for the: ${expertRole.toUpperCase()}
+
+OPPOSING COUNSEL'S DEPOSITION ATTACK QUESTION / TOPIC TO ANALYZE:
+"${question}"
+
+YOUR TASK:
+1. Deconstruct how opposing counsel (${expertRole === 'PLAINTIFF' ? 'Defense counsel' : 'Plaintiff counsel'}) is attempting to trap, impeach, or bait Dr. Mohit.
+2. Formulate the exact, authoritative, bulletproof response that Dr. Mohit should testify to on the record.
+3. List 3 key evidentiary points from the patient's record to emphasize.
+4. List 2 exact citations (dates, imaging, literature) to dismantle opposing counsel's theory.
+
+OUTPUT FORMAT:
+Return pure JSON matching this exact structure:
+{
+  "answer": "The comprehensive, polished courtroom response scripted for Dr. Mohit...",
+  "opposingCounselTrap": "Explanation of the trap opposing counsel is laying...",
+  "keyEvidentiaryPoints": [
+    "Point 1...",
+    "Point 2...",
+    "Point 3..."
+  ],
+  "recommendedCitations": [
+    "Citation 1...",
+    "Citation 2..."
+  ]
+}
+`;
+
+  const candidateModels = [
+    'gemini-3.8-flash',
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-pro-preview'
+  ];
+
+  const payload = {
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: prompt }]
+      }
+    ],
+    generationConfig: {
+      temperature: 0.2,
+      responseMimeType: 'application/json'
+    }
+  };
+
+  let rawText: string | null = null;
+  let lastError = '';
+
+  for (const model of candidateModels) {
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey.trim()}`;
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-goog-api-key': apiKey.trim()
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        lastError = await response.text();
+        continue;
+      }
+
+      const resJson = await response.json();
+      const textCandidate = resJson.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (textCandidate) {
+        rawText = textCandidate;
+        break;
+      }
+    } catch (err: unknown) {
+      lastError = err instanceof Error ? err.message : String(err);
+    }
+  }
+
+  if (!rawText) {
+    throw new Error(lastError || 'Failed to generate deposition response.');
+  }
+
+  return JSON.parse(rawText);
 }

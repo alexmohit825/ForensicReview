@@ -143,7 +143,21 @@ export const Navbar: React.FC<NavbarProps> = ({
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
-              <span>5. Literature Support (5 Articles)</span>
+              <span>5. Literature Support</span>
+            </button>
+
+            <button
+              onClick={() => onSelectTab(6)}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg transition-all whitespace-nowrap ${
+                activeTab === 6
+                  ? 'bg-rose-600 text-white shadow-sm font-bold'
+                  : 'text-rose-700 bg-rose-50/70 hover:bg-rose-100 border border-rose-200/60'
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                <span>6. Deposition Prep</span>
+              </span>
             </button>
           </div>
         )}

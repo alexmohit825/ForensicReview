@@ -71,7 +71,39 @@ export interface LiteratureArticle {
   pubmedUrl: string;
 }
 
-// Master Schema of all 5 Deliverables from Gemini
+// 6) Deposition Prep & Adversarial Cross-Examination (Plaintiff vs. Defense Strategy)
+export type ExpertRole = 'PLAINTIFF' | 'DEFENSE';
+
+export interface DepositionAttackAngle {
+  id: string;
+  category: 'PRE_EXISTING_CONDITIONS' | 'MECHANISM_OF_INJURY' | 'OBJECTIVE_VS_SUBJECTIVE' | 'GAP_IN_CARE' | 'SURGICAL_NECESSITY' | 'CREDIBILITY_BIAS';
+  opposingCounselAngle: string; // How opposing counsel will frame the attack
+  likelyQuestions: string[]; // Specific traps or cross-examination questions
+  recommendedResponse: string; // Scripted, bulletproof medical & legal response for Dr. Mohit
+  trapToAvoid: string; // What concessions opposing counsel is trying to bait
+  keyRecordCitations: string[]; // Specific dates, MRI findings, or chart notes to cite
+  supportingLiterature: string; // Peer-reviewed literature or jury instruction grounding
+}
+
+export interface CaseSpecificQnA {
+  id: string;
+  question: string;
+  role: ExpertRole;
+  answer: string;
+  keyEvidentiaryPoints: string[];
+  crossExamTrap: string;
+}
+
+export interface DepositionPrepDeliverable {
+  expertRole: ExpertRole;
+  crossExaminationVulnerabilities: DepositionAttackAngle[];
+  plaintiffSpecificStrategy: string;
+  defenseSpecificStrategy: string;
+  goldenRulesForDeposition: string[];
+  mockQnAHistory?: CaseSpecificQnA[];
+}
+
+// Master Schema of Deliverables from Gemini
 export interface MedicolegalCaseAnalysis {
   id: string;
   createdAt: string;
@@ -81,4 +113,5 @@ export interface MedicolegalCaseAnalysis {
   deliverable3_timeline: TimelineEvent[];
   deliverable4_presentationSlides: PresentationSlide[];
   deliverable5_literature: LiteratureArticle[];
+  deliverable6_depositionPrep?: DepositionPrepDeliverable;
 }
