@@ -27,7 +27,7 @@ export async function convertFileToBase64(file: File): Promise<string> {
   });
 }
 
-// Dual-Engine PDF Ingestion: Ultra-Fast Digital Text Extractor + Bounded On-Device OCR
+// High-Yield Clinical PDF Ingestion: Processes multi-page files (even 1,000+ pages) in seconds
 export async function extractTextFromPdf(
   file: File, 
   onStatusUpdate?: (status: string) => void
@@ -41,77 +41,74 @@ export async function extractTextFromPdf(
     const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
     const pdf = await loadingTask.promise;
     
-    let fullText = `=== CLINICAL RECORD: ${file.name} (Total Pages: ${pdf.numPages}) ===\n\n`;
-    let scannedPagesDetected: number[] = [];
-    let digitalCharCount = 0;
+    if (onStatusUpdate) {
+      onStatusUpdate(`Scanning ${pdf.numPages} pages in ${file.name} for clinical findings...`);
+    }
 
-    // Pass 1: Blazing-fast digital text extraction across all pages (takes ~1-2 seconds)
+    const keywords = [
+      'MRI', 'CT', 'IMPRESSION', 'DISC', 'HERNIATION', 'SURGERY', 'COLLISION', 
+      'ACCIDENT', 'MOTOR DEFICIT', 'RADICULOPATHY', 'OPERATIVE', 'DISCHARGE', 
+      'EMERGENCY', 'SPINE', 'PHYSICAL THERAPY', 'ELECTROMYOGRAPHY', 'EMG', 
+      'NUMBNESS', 'WEAKNESS', 'LUMBAR', 'CERVICAL', 'S1', 'L5', 'C5', 'C6', 'EXAM'
+    ];
+
+    interface ScoredPage {
+      pageNum: number;
+      score: number;
+      text: string;
+    }
+
+    const scoredPages: ScoredPage[] = [];
+
+    // Extract text across pages with responsive batch reporting
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
-      if (onStatusUpdate && pageNum % 5 === 0) {
-        onStatusUpdate(`Scanning page ${pageNum} of ${pdf.numPages} in ${file.name}...`);
+      if (onStatusUpdate && (pageNum % 50 === 0 || pageNum === pdf.numPages)) {
+        onStatusUpdate(`Read ${pageNum} of ${pdf.numPages} pages (${Math.round((pageNum / pdf.numPages) * 100)}%)...`);
       }
-      const page = await pdf.getPage(pageNum);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items
-        .map((item: any) => item.str || '')
-        .join(' ');
 
-      if (pageText.trim().length > 40) {
-        digitalCharCount += pageText.trim().length;
-        fullText += `[PAGE ${pageNum}]\n${pageText.trim()}\n\n`;
-      } else {
-        scannedPagesDetected.push(pageNum);
+      try {
+        const page = await pdf.getPage(pageNum);
+        const textContent = await page.getTextContent();
+        const raw = textContent.items
+          .map((item: any) => item.str || '')
+          .join(' ')
+          .replace(/RCVD\s+\d+\/\d+\/\d+/gi, '')
+          .trim();
+
+        if (raw.length > 25) {
+          const upper = raw.toUpperCase();
+          let score = 0;
+          for (const kw of keywords) {
+            if (upper.includes(kw)) score += 1;
+          }
+          scoredPages.push({ pageNum, score, text: raw });
+        }
+      } catch (pageErr) {
+        // Skip unreadable individual page and continue
+        console.warn(`Could not read page ${pageNum}:`, pageErr);
       }
     }
 
-    // Pass 2: Bounded on-device OCR only if substantial digital text was missing
-    // Cap OCR at max 12 pages so the browser tab NEVER hangs or freezes
-    if (scannedPagesDetected.length > 0 && digitalCharCount < 1000) {
-      const pagesToOcr = scannedPagesDetected.slice(0, 12);
-      if (onStatusUpdate) {
-        onStatusUpdate(`Document appears scanned. Running OCR on first ${pagesToOcr.length} pages...`);
-      }
+    if (scoredPages.length === 0) {
+      return '';
+    }
 
-      let tesseractWorker: any = null;
-      try {
-        const { createWorker } = await import('tesseract.js');
-        tesseractWorker = await createWorker('eng');
+    // Prioritize high-yield clinical encounter pages
+    scoredPages.sort((a, b) => b.score - a.score);
+    // Take top 120 most clinically dense pages (ensuring robust context well within Gemini frontier limits)
+    const topPages = scoredPages.slice(0, 120);
+    // Re-order chronologically by page number
+    topPages.sort((a, b) => a.pageNum - b.pageNum);
 
-        for (let i = 0; i < pagesToOcr.length; i++) {
-          const pageNum = pagesToOcr[i];
-          if (onStatusUpdate) {
-            onStatusUpdate(`Running OCR on scanned page ${pageNum} (${i + 1}/${pagesToOcr.length})...`);
-          }
-
-          const page = await pdf.getPage(pageNum);
-          const viewport = page.getViewport({ scale: 1.2 });
-          const canvas = document.createElement('canvas');
-          const context = canvas.getContext('2d');
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-
-          if (context) {
-            await page.render({ canvasContext: context, viewport }).promise;
-            const ocrResult = await tesseractWorker.recognize(canvas);
-            const ocrText = ocrResult.data.text || '';
-            if (ocrText.trim().length > 0) {
-              fullText += `[SCANNED PAGE ${pageNum} OCR]\n${ocrText.trim()}\n\n`;
-            }
-          }
-        }
-      } catch (ocrErr) {
-        console.warn('OCR fallback error:', ocrErr);
-      } finally {
-        if (tesseractWorker) {
-          await tesseractWorker.terminate();
-        }
-      }
+    let fullText = `=== CLINICAL DOSSIER: ${file.name} (Synthesized ${topPages.length} High-Yield Clinical Pages from ${pdf.numPages} Total Pages) ===\n\n`;
+    for (const p of topPages) {
+      fullText += `[DOCUMENT PAGE ${p.pageNum}]\n${p.text}\n\n`;
     }
 
     return fullText;
   } catch (err) {
-    console.warn(`Direct PDF text extraction/OCR failed for ${file.name}:`, err);
-    return '';
+    console.warn(`PDF extraction failed for ${file.name}:`, err);
+    throw new Error(`Failed to extract medical text from ${file.name}: ${err instanceof Error ? err.message : String(err)}`);
   }
 }
 
@@ -298,7 +295,25 @@ export async function analyzeRecordsWithGemini(
     onStatusUpdate('Synthesizing timeline graphic, PowerPoint deck, and deposition prep...');
   }
 
-  const parsed = JSON.parse(rawText);
+  // Strip markdown code fences if present (e.g., ```json ... ```)
+  let cleanJson = rawText.trim();
+  if (cleanJson.startsWith('```json')) {
+    cleanJson = cleanJson.slice(7);
+  } else if (cleanJson.startsWith('```')) {
+    cleanJson = cleanJson.slice(3);
+  }
+  if (cleanJson.endsWith('```')) {
+    cleanJson = cleanJson.slice(0, -3);
+  }
+  cleanJson = cleanJson.trim();
+
+  let parsed: any;
+  try {
+    parsed = JSON.parse(cleanJson);
+  } catch (parseErr) {
+    console.error('Failed to parse Gemini JSON response:', cleanJson);
+    throw new Error(`Failed to parse clinical report JSON from Gemini: ${parseErr instanceof Error ? parseErr.message : String(parseErr)}`);
+  }
 
   // Normalize into standard MedicolegalCaseAnalysis without hardcoding Quinonez defaults
   const analysis: MedicolegalCaseAnalysis = {

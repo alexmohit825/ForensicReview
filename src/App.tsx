@@ -34,6 +34,7 @@ export const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<number>(1);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [statusMessage, setStatusMessage] = useState<string>('');
+  const [errorMessage, setErrorMessage] = useState<string>('');
   const [isApiKeyModalOpen, setIsApiKeyModalOpen] = useState<boolean>(false);
   const [hasApiKey, setHasApiKey] = useState<boolean>(() => hasGeminiApiKey());
 
@@ -57,6 +58,7 @@ export const App: React.FC = () => {
 
     try {
       setIsLoading(true);
+      setErrorMessage('');
       const result = await analyzeRecordsWithGemini(files, text, apiKey, role, (msg) => {
         setStatusMessage(msg);
       });
@@ -64,7 +66,8 @@ export const App: React.FC = () => {
       setActiveTab(1);
     } catch (err: any) {
       console.error('Analysis failed:', err);
-      alert(err.message || 'Failed to analyze records with Gemini. Please check your API key and connection.');
+      const msg = err.message || 'Failed to analyze records with Gemini. Please check your API key and connection.';
+      setErrorMessage(msg);
     } finally {
       setIsLoading(false);
       setStatusMessage('');
@@ -73,6 +76,7 @@ export const App: React.FC = () => {
 
   const handleNewCase = () => {
     setCaseAnalysis(null);
+    setErrorMessage('');
     localStorage.removeItem(ACTIVE_ANALYSIS_STORAGE_KEY);
     setActiveTab(1);
   };
@@ -100,6 +104,7 @@ export const App: React.FC = () => {
             onAnalyze={handleAnalyzeRecords}
             isLoading={isLoading}
             statusMessage={statusMessage}
+            errorMessage={errorMessage}
             hasApiKey={hasApiKey}
             onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
           />

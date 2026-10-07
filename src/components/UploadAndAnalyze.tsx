@@ -6,6 +6,7 @@ interface UploadAndAnalyzeProps {
   onAnalyze: (files: File[], text: string, role: ExpertRole) => Promise<void>;
   isLoading: boolean;
   statusMessage: string;
+  errorMessage?: string;
   hasApiKey: boolean;
   onOpenApiKeyModal: () => void;
 }
@@ -14,6 +15,7 @@ export const UploadAndAnalyze: React.FC<UploadAndAnalyzeProps> = ({
   onAnalyze,
   isLoading,
   statusMessage,
+  errorMessage,
   hasApiKey,
   onOpenApiKeyModal
 }) => {
@@ -276,6 +278,17 @@ export const UploadAndAnalyze: React.FC<UploadAndAnalyzeProps> = ({
             )}
           </button>
         </div>
+
+        {/* Error Banner */}
+        {errorMessage && (
+          <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 flex items-start gap-3">
+            <span className="text-lg">⚠️</span>
+            <div className="flex-1 text-xs space-y-1">
+              <span className="font-bold block">Processing / Analysis Failed:</span>
+              <p className="font-mono whitespace-pre-wrap">{errorMessage}</p>
+            </div>
+          </div>
+        )}
 
       </form>
 
