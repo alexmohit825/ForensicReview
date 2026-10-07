@@ -4,14 +4,12 @@ import time
 import re
 import json
 import io
+import glob
 import streamlit as st
 import pymupdf
 import google.genai as genai
 from docx import Document
-from docx.shared import Inches, Pt, RGBColor
 from pptx import Presentation
-from pptx.util import Inches as PptxInches, Pt as PptxPt
-from pptx.dml.color import RGBColor as PptxRGBColor
 
 # Page Configuration
 st.set_page_config(
@@ -61,19 +59,25 @@ st.markdown("""
         padding: 12px 16px;
         margin-bottom: 12px;
     }
+    .dropzone-box {
+        border: 2px dashed #3b82f6;
+        background-color: #eff6ff;
+        border-radius: 10px;
+        padding: 18px;
+        text-align: center;
+        margin-bottom: 15px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
 # Load API key across Cloud, local .env, or OS environment
 def get_default_api_key():
-    # 1. Streamlit Cloud Secrets (Production)
     try:
         if "GEMINI_API_KEY" in st.secrets:
             return str(st.secrets["GEMINI_API_KEY"]).strip()
     except Exception:
         pass
 
-    # 2. Local developer environment file (.env.local)
     env_local = os.path.join(os.path.dirname(__file__), ".env.local")
     if os.path.exists(env_local):
         try:
@@ -84,7 +88,6 @@ def get_default_api_key():
         except Exception:
             pass
 
-    # 3. System Environment Variable
     return os.environ.get("GEMINI_API_KEY", "")
 
 DEFAULT_API_KEY = get_default_api_key()
@@ -100,10 +103,8 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "file_name" not in st.session_state:
     st.session_state.file_name = ""
-if "pending_bytes" not in st.session_state:
-    st.session_state.pending_bytes = None
-if "pending_name" not in st.session_state:
-    st.session_state.pending_name = None
+if "pending_files" not in st.session_state:
+    st.session_state.pending_files = []  # List of dicts: {'name': str, 'bytes': bytes, 'size_mb': float}
 
 # Sidebar Controls
 with st.sidebar:
@@ -133,24 +134,25 @@ with st.sidebar:
         
     st.divider()
     if st.session_state.analysis_sections:
-        if st.button("🔄 Clear Active Case / New File", use_container_width=True):
+        if st.button("🔄 Clear Active Case / New Review", use_container_width=True):
             st.session_state.analysis_sections = None
             st.session_state.current_dossier = None
             st.session_state.chat_history = []
             st.session_state.file_name = ""
-            st.session_state.pending_bytes = None
-            st.session_state.pending_name = None
+            st.session_state.pending_files = []
             st.rerun()
 
 # Workspace Header
 st.markdown('<div class="main-header">Forensic Medicolegal Review Workstation</div>', unsafe_allow_html=True)
-st.markdown('<div class="sub-header">Direct Native Ingestion for 1,000+ Page Medical Legal Records & Multi-Gigabyte Hospital Files</div>', unsafe_allow_html=True)
+st.markdown('<div class="sub-header">Multi-File Folder Ingestion & Native Scoring for 1,000+ Page Medicolegal Records</div>', unsafe_allow_html=True)
 
-# Native High-Speed PDF Text Extractor
-def extract_high_yield_dossier(pdf_bytes, file_name, max_pages=140):
+# Sequential Memory-Safe Multi-File Clinical Extractor
+def extract_consolidated_dossier(file_items, max_total_pages=150):
     t0 = time.time()
-    doc = pymupdf.open(stream=pdf_bytes, filetype="pdf")
-    total_pages = len(doc)
+    all_pages = []
+    total_docs = len(file_items)
+    grand_total_pages = 0
+    file_stats = []
     
     keywords = [
         'MRI', 'CT', 'IMPRESSION', 'DISC', 'HERNIATION', 'SURGERY', 'COLLISION', 
@@ -160,36 +162,55 @@ def extract_high_yield_dossier(pdf_bytes, file_name, max_pages=140):
         'EXAM', 'MYELOPATHY', 'FUSION', 'NEUROSURGERY', 'ANESTHESIA', 'ARTHRODESIS'
     ]
     
-    pages_data = []
-    for i in range(total_pages):
-        text = doc[i].get_text()
-        if len(text.strip()) > 30:
-            upper = text.upper()
-            score = sum(1 for kw in keywords if kw in upper)
-            pages_data.append((i + 1, score, text))
-            
-    # Sort by clinical relevance score
-    pages_data.sort(key=lambda x: x[1], reverse=True)
-    # Take top N pages and restore chronological ordering
-    top_pages = sorted(pages_data[:max_pages], key=lambda x: x[0])
+    for item in file_items:
+        fname = item['name']
+        fbytes = item['bytes']
+        doc = pymupdf.open(stream=fbytes, filetype="pdf")
+        doc_page_count = len(doc)
+        grand_total_pages += doc_page_count
+        doc_scored_count = 0
+        
+        for i in range(doc_page_count):
+            txt = doc[i].get_text()
+            if len(txt.strip()) > 30:
+                up = txt.upper()
+                sc = sum(1 for kw in keywords if kw in up)
+                all_pages.append({
+                    'file': fname,
+                    'page': i + 1,
+                    'score': sc,
+                    'text': txt.strip()
+                })
+                doc_scored_count += 1
+                
+        doc.close()
+        file_stats.append({
+            'name': fname,
+            'pages': doc_page_count,
+            'scored': doc_scored_count
+        })
+        
+    # Sort all pages across all ingested documents by clinical relevance score
+    all_pages.sort(key=lambda x: x['score'], reverse=True)
+    selected_pages = all_pages[:max_total_pages]
     
-    dossier = f"=== CLINICAL RECORD DOSSIER: {file_name} ===\n"
-    dossier += f"Total File Pages: {total_pages} | High-Yield Forensic Clinical Pages Selected: {len(top_pages)}\n\n"
+    dossier = "=== CONSOLIDATED CLINICAL RECORD DOSSIER ===\n"
+    dossier += f"Total Ingested Documents: {total_docs} | Combined Page Count: {grand_total_pages:,} | High-Yield Forensic Pages Extracted: {len(selected_pages)}\n\n"
     
-    for page_num, score, text in top_pages:
-        dossier += f"[RECORD PAGE {page_num}]\n{text.strip()}\n\n"
+    for p in selected_pages:
+        dossier += f"[SOURCE DOCUMENT: {p['file']} | PAGE {p['page']}]\n{p['text']}\n\n"
         
     duration = time.time() - t0
-    return dossier, total_pages, len(top_pages), duration
+    return dossier, grand_total_pages, len(selected_pages), duration, file_stats
 
 # Structure Extraction Prompt
 def analyze_dossier(dossier_text, is_plaintiff, api_key):
     client = genai.Client(api_key=api_key)
     stance_text = "PLAINTIFF EXPERT (Injured Party)" if is_plaintiff else "DEFENSE EXPERT (Retaining Insurer/Counsel)"
     stance_focus = (
-        "Focus on proving collision proximate causation, traumatic aggravation of pre-existing degenerative conditions under Washington Pattern Jury Instruction WPI 30.17 Eggshell Skull doctrine, objective MRI/EMG correlates, and countering defense degenerative assertions."
+        "Focus on proving collision proximate causation, traumatic aggravation of pre-existing degenerative conditions under Washington Pattern Jury Instruction WPI 30.17 Eggshell Skull doctrine, objective MRI/EMG correlates, and countering defense degenerative assertions across all source documents."
         if is_plaintiff else
-        "Focus on proving pre-existing chronic natural degenerative spondylosis, minor delta-V mechanics, intervening domestic falls, treatment gaps, lack of acute traumatic spinal disruption, and countering plaintiff claims."
+        "Focus on proving pre-existing chronic natural degenerative spondylosis, minor delta-V mechanics, intervening domestic falls, treatment gaps, lack of acute traumatic spinal disruption, and countering plaintiff claims across all source documents."
     )
     
     system_prompt = f"""
@@ -197,25 +218,25 @@ You are a Board-Certified Neurosurgeon and premier Forensic Medicolegal Causatio
 You are retained as the: {stance_text}.
 {stance_focus}
 
-Analyze the provided clinical records and return your complete findings structured with these EXACT 6 section delimiter tags:
+Analyze the provided clinical records from all ingested source documents and return your complete findings structured with these EXACT 6 section delimiter tags:
 
 <<<SECTION:SUMMARY>>>
-[Complete Clinical Summary: Patient Full Name, DOB, Age, Gender, Date of Injury/Incident, Comprehensive History of Present Illness (HPI) & Initial Trauma Mechanism, Chronological Diagnostic Imaging Review with exact dates and impressions, Physical Examination Highlights Across Time, and Full Treatment Course/Interventions]
+[Complete Clinical Summary: Patient Full Name, DOB, Age, Gender, Date of Injury/Incident, Comprehensive History of Present Illness (HPI) & Initial Trauma Mechanism, Chronological Diagnostic Imaging Review with exact dates and impressions across all documents, Physical Examination Highlights Across Time, and Full Treatment Course/Interventions]
 
 <<<SECTION:CAUSATION>>>
 [Formal Causation Opinion & Standard of Care: Definitive causation opinion stated "Within a reasonable degree of medical probability", Biomechanical causation & vector analysis, Detailed Washington State Pattern Jury Instruction 30.17 (WPI 30.17 Eggshell Skull / Traumatic Aggravation) Analysis, Distinction between compensable conditions vs non-compensable/intervening conditions, and Prognosis/MMI/Future care]
 
 <<<SECTION:TIMELINE>>>
-[Detailed Chronological Timeline: Markdown table of distinct encounters with columns: Date (YYYY-MM-DD) | Facility & Provider | Clinical Event Summary | Exact Verbatim Record Excerpt | Significance (CRITICAL vs ROUTINE)]
+[Detailed Chronological Timeline: Unified Markdown table of distinct encounters across all ingested files with columns: Date (YYYY-MM-DD) | Source File & Page | Facility & Provider | Clinical Event Summary | Exact Verbatim Record Excerpt | Significance (CRITICAL vs ROUTINE)]
 
 <<<SECTION:SLIDES>>>
-[PowerPoint Courtroom Presentation Slides: 8-10 high-impact slides. For each slide include Slide Title, Medical Date, Clinic/Doctor, Exact Verbatim Chart Quote, and Why this note is crucial evidence in court]
+[PowerPoint Courtroom Presentation Slides: 8-10 high-impact slides. For each slide include Slide Title, Medical Date, Source Document, Clinic/Doctor, Exact Verbatim Chart Quote, and Why this note is crucial evidence in court]
 
 <<<SECTION:LITERATURE>>>
 [Top 5 Peer-Reviewed Literature Articles: Exactly 5 high-impact medical journal citations (Spine, JNS, NEJM, Lancet) with Authors, Title, Journal, Year, and Forensic Relevance supporting your causation conclusions]
 
 <<<SECTION:DEPOSITION>>>
-[Deposition Preparation & Cross-Examination Attacks: Retained Role Strategy Roadmap ({stance_text}), 5 Golden Rules for the Witness Stand, and 4-6 Specific Cross-Examination Trap Questions Opposing Counsel Will Ask with: Opposing Counsel Attack Angle, Likely Trap Questions, Scripted High-Level Neurosurgical Response for Dr. Mohit, The Trap to Avoid, and Specific Record Citations in this file]
+[Deposition Preparation & Cross-Examination Attacks: Retained Role Strategy Roadmap ({stance_text}), 5 Golden Rules for the Witness Stand, and 4-6 Specific Cross-Examination Trap Questions Opposing Counsel Will Ask with: Opposing Counsel Attack Angle, Likely Trap Questions, Scripted High-Level Neurosurgical Response for Dr. Mohit, The Trap to Avoid, and Specific Record Citations from the source files]
 """
 
     response = client.models.generate_content(
@@ -225,7 +246,6 @@ Analyze the provided clinical records and return your complete findings structur
     
     text = response.text
     
-    # Parse sections
     sections = {
         "summary": "No summary generated.",
         "causation": "No causation opinion generated.",
@@ -255,7 +275,6 @@ Analyze the provided clinical records and return your complete findings structur
                     break
             sections[key] = text[start:end].strip()
         else:
-            # Fallback if model didn't use tags exactly
             sections[key] = text
             
     return sections
@@ -294,13 +313,11 @@ def create_docx_report(sections, file_name, role_name):
 # PowerPoint Slide Deck Generator
 def create_pptx_deck(sections, file_name):
     prs = Presentation()
-    # Title Slide
     title_slide_layout = prs.slide_layouts[0]
     slide = prs.slides.add_slide(title_slide_layout)
     slide.shapes.title.text = f"Courtroom Exhibits: {file_name}"
     slide.placeholders[1].text = f"Forensic Neurosurgical Evidence Deck\nWashington State Superior Court\n{time.strftime('%B %Y')}"
     
-    # Slides parsing
     slides_text = sections.get("slides", "")
     slide_blocks = re.split(r"(?:Slide\s*\d+:|###\s*Slide\s*\d+:)", slides_text, flags=re.IGNORECASE)
     
@@ -333,53 +350,119 @@ def create_pptx_deck(sections, file_name):
 
 # UI Workflow: File Ingestion vs Dossier Review
 if not st.session_state.analysis_sections:
-    st.markdown("### 📁 Select or Drop Patient Medical Records")
+    st.markdown("### 📁 Ingest Case Records: Drag Files or Load Entire Folder")
     
-    farthing_path = r"C:\Users\mohal\OneDrive\Desktop\Farthing.pdf"
-    has_local_farthing = os.path.exists(farthing_path)
+    # Check for local Farthing folder/file if running on desktop
+    local_farthing_dir = r"C:\Users\mohal\OneDrive\Desktop\Farthing"
+    local_farthing_file = r"C:\Users\mohal\OneDrive\Desktop\Farthing\Farthing.pdf"
+    has_local_env = os.path.exists(local_farthing_dir) or os.path.exists(local_farthing_file)
     
-    if has_local_farthing:
-        col_a, col_b = st.columns([1, 1])
-        with col_a:
-            st.markdown("**Option A: Desktop Benchmark (1-Click)**")
-            if st.button("📄 Load Farthing.pdf (1,185 Pages / 83.6 MB)", use_container_width=True, type="secondary"):
-                with open(farthing_path, "rb") as f:
-                    st.session_state.pending_bytes = f.read()
-                st.session_state.pending_name = "Farthing.pdf"
-                st.rerun()
-                    
-        with col_b:
-            st.markdown("**Option B: Drag & Drop Any Case PDF**")
-            uploaded_file = st.file_uploader(
-                "Upload patient records (no page or size limits):",
-                type=["pdf"],
-                help="High-capacity native ingestion handles 2,000+ page records."
-            )
-            if uploaded_file is not None:
-                st.session_state.pending_bytes = uploaded_file.read()
-                st.session_state.pending_name = uploaded_file.name
-                st.rerun()
-    else:
-        st.markdown("**Upload Medical Records (PDF)**")
-        uploaded_file = st.file_uploader(
-            "Drag & drop any patient medical chart (no page or size limits):",
-            type=["pdf"],
-            help="High-capacity native ingestion handles 2,000+ page records."
+    # Ingestion Tabs: Universal Drag & Drop vs Local Folder Path
+    ingest_tab1, ingest_tab2 = st.tabs([
+        "📥 Universal Drag & Drop (Multiple Files or Whole Folder)",
+        "📂 Local PC Folder Path (Desktop Only)"
+    ])
+    
+    with ingest_tab1:
+        st.markdown(
+            """
+            <div class="dropzone-box">
+                <span style="font-size: 1.3rem; font-weight: 700; color: #1e3a8a;">
+                    📂 Drop Multiple Medical PDFs or an Entire Folder Here
+                </span><br>
+                <span style="color: #4b5563; font-size: 0.95rem;">
+                    Drag 1, 10, or 50 PDFs at once. The workstation automatically consolidates all files into one unified patient timeline.
+                </span>
+            </div>
+            """, 
+            unsafe_allow_html=True
         )
-        if uploaded_file is not None:
-            st.session_state.pending_bytes = uploaded_file.read()
-            st.session_state.pending_name = uploaded_file.name
-            st.rerun()
-
-    if st.session_state.pending_bytes and st.session_state.pending_name:
-        target_name = st.session_state.pending_name
-        target_bytes = st.session_state.pending_bytes
-        mb_size = len(target_bytes) / (1024 * 1024)
         
-        st.success(f"✓ Ready for Analysis: **{target_name}** ({mb_size:.1f} MB)")
+        uploaded_files = st.file_uploader(
+            "Select or drop files:",
+            type=["pdf"],
+            accept_multiple_files=True,
+            help="Select multiple files or drag a folder's contents directly into this box.",
+            label_visibility="collapsed"
+        )
+        
+        if uploaded_files:
+            new_files = []
+            for uf in uploaded_files:
+                new_files.append({
+                    'name': uf.name,
+                    'bytes': uf.read(),
+                    'size_mb': len(uf.getvalue()) / (1024 * 1024)
+                })
+            st.session_state.pending_files = new_files
+
+    with ingest_tab2:
+        st.markdown("**Enter a Local Folder Path Containing Case PDFs:**")
+        folder_input = st.text_input(
+            "Local Directory Path:",
+            value=local_farthing_dir if has_local_env else "",
+            placeholder="e.g. C:\\Users\\mohal\\Documents\\Cases\\Patient_X"
+        )
+        col_load, col_clear = st.columns([1, 1])
+        with col_load:
+            if st.button("📁 Load All PDFs from Folder", use_container_width=True):
+                if os.path.isdir(folder_input):
+                    found_pdfs = glob.glob(os.path.join(folder_input, "*.pdf"))
+                    if found_pdfs:
+                        loaded = []
+                        for fp in found_pdfs:
+                            with open(fp, "rb") as f:
+                                b = f.read()
+                                loaded.append({
+                                    'name': os.path.basename(fp),
+                                    'bytes': b,
+                                    'size_mb': len(b) / (1024 * 1024)
+                                })
+                        st.session_state.pending_files = loaded
+                        st.success(f"✓ Loaded {len(loaded)} PDF files from {folder_input}")
+                        st.rerun()
+                    else:
+                        st.warning(f"No .pdf files found in {folder_input}")
+                else:
+                    st.error(f"Directory not found: {folder_input}")
+        with col_clear:
+            if st.button("📄 Load Farthing.pdf Directly (1,185 Pages)", use_container_width=True):
+                target_fp = local_farthing_file if os.path.exists(local_farthing_file) else r"C:\Users\mohal\OneDrive\Desktop\Farthing.pdf"
+                if os.path.exists(target_fp):
+                    with open(target_fp, "rb") as f:
+                        b = f.read()
+                        st.session_state.pending_files = [{
+                            'name': "Farthing.pdf",
+                            'bytes': b,
+                            'size_mb': len(b) / (1024 * 1024)
+                        }]
+                    st.rerun()
+                else:
+                    st.error(f"File not found at {target_fp}")
+
+    # Display Queue of Loaded Files
+    if st.session_state.pending_files:
+        st.divider()
+        st.markdown("### 📋 Case Ingestion Queue")
+        
+        total_files = len(st.session_state.pending_files)
+        total_mb = sum(f['size_mb'] for f in st.session_state.pending_files)
+        
+        m_col1, m_col2, m_col3 = st.columns(3)
+        m_col1.metric("Documents Ingested", f"{total_files}")
+        m_col2.metric("Total Size", f"{total_mb:.1f} MB")
+        m_col3.metric("Retained Role", "Plaintiff" if is_plaintiff else "Defense")
+        
+        # Display file breakdown table
+        file_table = []
+        for i, f in enumerate(st.session_state.pending_files, 1):
+            file_table.append(f"{i}. **{f['name']}** ({f['size_mb']:.1f} MB)")
+        st.markdown("\n".join(file_table))
+        
+        case_title = st.session_state.pending_files[0]['name'] if total_files == 1 else f"Batch Case ({total_files} Documents)"
         
         analyze_btn = st.button(
-            f"🚀 Execute Forensic Analysis as { 'PLAINTIFF EXPERT' if is_plaintiff else 'DEFENSE EXPERT' }", 
+            f"🚀 Execute Consolidated Forensic Review as { 'PLAINTIFF EXPERT' if is_plaintiff else 'DEFENSE EXPERT' }", 
             type="primary", 
             use_container_width=True
         )
@@ -388,20 +471,21 @@ if not st.session_state.analysis_sections:
             if not st.session_state.api_key:
                 st.error("Please enter a valid Google Gemini API Key in the sidebar.")
             else:
-                with st.status("Analyzing Medical Records with Native Engine...", expanded=True) as status:
-                    st.write("1. High-speed native parsing and clinical scoring across all pages...")
-                    dossier, total_pages, selected_pages, parse_sec = extract_high_yield_dossier(target_bytes, target_name)
-                    st.write(f"✓ Scored all {total_pages:,} pages in {parse_sec:.2f} seconds. Synthesized {selected_pages} high-impact clinical pages.")
+                with st.status("Consolidating & Analyzing Multi-File Patient Records...", expanded=True) as status:
+                    st.write(f"1. Sequentially parsing & scoring {total_files} document(s) with native C engine...")
+                    dossier, total_pages, selected_pages, parse_sec, stats = extract_consolidated_dossier(st.session_state.pending_files)
                     
-                    st.write(f"2. Synthesizing full courtroom dossier with Gemini 3.8 Flash...")
+                    st.write(f"✓ Scored all {total_pages:,} pages across {total_files} document(s) in {parse_sec:.2f} seconds.")
+                    st.write(f"✓ Synthesized {selected_pages} high-impact clinical pages ({len(dossier):,} clinical characters).")
+                    
+                    st.write(f"2. Transmitting consolidated dossier to Google Gemini 3.8 Flash...")
                     try:
                         sections = analyze_dossier(dossier, is_plaintiff, st.session_state.api_key)
                         st.session_state.analysis_sections = sections
                         st.session_state.current_dossier = dossier
-                        st.session_state.file_name = target_name
-                        st.session_state.pending_bytes = None
-                        st.session_state.pending_name = None
-                        status.update(label="Forensic Analysis Complete!", state="complete", expanded=False)
+                        st.session_state.file_name = case_title
+                        st.session_state.pending_files = []
+                        status.update(label="Consolidated Forensic Analysis Complete!", state="complete", expanded=False)
                         st.rerun()
                     except Exception as e:
                         st.error(f"Analysis failed: {str(e)}")
@@ -418,19 +502,21 @@ else:
         st.markdown(f"**Case:** `{file_name}` | **Retained Role:** `{role}`")
     with col_word:
         docx_bytes = create_docx_report(sections, file_name, role)
+        safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', file_name)
         st.download_button(
             label="📥 Export Word (.docx)",
             data=docx_bytes,
-            file_name=f"{file_name.replace('.pdf', '')}_Forensic_Report.docx",
+            file_name=f"{safe_name}_Forensic_Report.docx",
             mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
             use_container_width=True
         )
     with col_ppt:
         pptx_bytes = create_pptx_deck(sections, file_name)
+        safe_name = re.sub(r'[^a-zA-Z0-9_-]', '_', file_name)
         st.download_button(
             label="📊 Export Slides (.pptx)",
             data=pptx_bytes,
-            file_name=f"{file_name.replace('.pdf', '')}_Courtroom_Slides.pptx",
+            file_name=f"{safe_name}_Courtroom_Slides.pptx",
             mime="application/vnd.openxmlformats-officedocument.presentationml.presentation",
             use_container_width=True
         )
@@ -445,7 +531,7 @@ else:
         "4. Courtroom Slides",
         "5. Literature Support",
         "6. Deposition Prep",
-        "💬 Copilot Q&A (Ask File)"
+        "💬 Copilot Q&A (Ask Dossier)"
     ])
     
     with tab1:
@@ -459,6 +545,7 @@ else:
         
     with tab3:
         st.markdown("### 📅 Deliverable 3: Detailed Chronological Medical Timeline")
+        st.caption("Consolidated across all uploaded source records.")
         st.markdown(sections.get("timeline", sections.get("full_text", "")))
         
     with tab4:
@@ -474,8 +561,8 @@ else:
         st.markdown(sections.get("deposition", sections.get("full_text", "")))
         
     with tab7:
-        st.markdown("### 💬 Copilot Q&A: Inquire Directly on the File")
-        st.caption("Ask specific forensic questions about surgery compensability, cross-examination traps, or chart citations.")
+        st.markdown("### 💬 Copilot Q&A: Inquire Directly Across the Entire Case File")
+        st.caption("Ask specific forensic questions across all documents in this patient dossier.")
         
         for q, a in st.session_state.chat_history:
             with st.chat_message("user"):
@@ -483,14 +570,14 @@ else:
             with st.chat_message("assistant"):
                 st.markdown(a)
                 
-        user_question = st.chat_input("Ask any question about this patient file (e.g. 'Are the surgeries related to the claim?')...")
+        user_question = st.chat_input("Ask any question about this case dossier (e.g. 'Are the surgeries related to the claim?')...")
         if user_question:
             st.session_state.chat_history.append((user_question, "...Consulting file..."))
             with st.chat_message("user"):
                 st.markdown(user_question)
                 
             with st.chat_message("assistant"):
-                with st.spinner("Analyzing file and prior findings with Gemini 3.8 Flash..."):
+                with st.spinner("Analyzing case dossier and prior findings with Gemini 3.8 Flash..."):
                     try:
                         client = genai.Client(api_key=st.session_state.api_key)
                         q_prompt = f"""
