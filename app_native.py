@@ -11,10 +11,17 @@ import time
 import glob
 import re
 import io
+import ctypes
 import pymupdf
 import google.genai as genai
 from docx import Document
 from pptx import Presentation
+
+# Set Windows AppUserModelID so Windows taskbar displays the custom icon
+try:
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID("mohit.forensicreview.workstation.1.0")
+except Exception:
+    pass
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -241,6 +248,11 @@ class ForensicWorkstationApp(QMainWindow):
         super().__init__()
         self.setWindowTitle("ForensicReview — Native Medicolegal Workstation")
         self.resize(1300, 850)
+        
+        icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app_icon.ico")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
+            
         self.selected_files = []
         self.analysis_sections = None
         self.current_dossier = None
@@ -521,6 +533,11 @@ Provide a direct, authoritative, legally precise neurosurgical answer with speci
 def main():
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
+    
+    icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app_icon.ico")
+    if os.path.exists(icon_path):
+        app.setWindowIcon(QIcon(icon_path))
+        
     window = ForensicWorkstationApp()
     window.show()
     sys.exit(app.exec())
