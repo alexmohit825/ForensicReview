@@ -242,12 +242,108 @@ def create_pptx_deck(sections, file_name, save_path):
             p.text = line.replace("**", "")
     prs.save(save_path)
 
+# Dedicated Drag & Drop Zone Widget
+class DropZoneWidget(QFrame):
+    filesDropped = pyqtSignal(list)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+        self.normal_style = """
+            QFrame {
+                border: 2px dashed #94a3b8;
+                border-radius: 8px;
+                background-color: #f8fafc;
+                padding: 14px;
+            }
+            QFrame:hover {
+                border-color: #2563eb;
+                background-color: #f1f5f9;
+            }
+        """
+        self.drag_style = """
+            QFrame {
+                border: 2px dashed #1d4ed8;
+                border-radius: 8px;
+                background-color: #dbeafe;
+                padding: 14px;
+            }
+        """
+        self.setStyleSheet(self.normal_style)
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(4)
+
+        self.label_icon = QLabel("📥")
+        self.label_icon.setFont(QFont("Segoe UI", 22))
+        self.label_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.label_icon)
+
+        self.label_title = QLabel("Drag & Drop Case Folder or Medical PDF Records Here")
+        self.label_title.setFont(QFont("Segoe UI", 11, QFont.Weight.Bold))
+        self.label_title.setStyleSheet("color: #1e293b;")
+        self.label_title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.label_title)
+
+        self.label_sub = QLabel("Supports dropping entire case folders (e.g. 'Aviva Health') or individual PDF files directly here")
+        self.label_sub.setFont(QFont("Segoe UI", 9))
+        self.label_sub.setStyleSheet("color: #64748b;")
+        self.label_sub.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.label_sub)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            self.setStyleSheet(self.drag_style)
+            self.label_title.setText("Release mouse to load records...")
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragLeaveEvent(self, event):
+        self.setStyleSheet(self.normal_style)
+        self.label_title.setText("Drag & Drop Case Folder or Medical PDF Records Here")
+
+    def dropEvent(self, event):
+        self.setStyleSheet(self.normal_style)
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            paths = [u.toLocalFile() for u in urls if u.isLocalFile()]
+            if paths:
+                self.filesDropped.emit(paths)
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def set_loaded_state(self, count, folder_name=None, total_mb=0.0, first_file=None):
+        self.label_icon.setText("📁")
+        if folder_name:
+            self.label_title.setText(f"✓ Loaded Folder '{folder_name}' ({count} PDF records)")
+        else:
+            self.label_title.setText(f"✓ Loaded {count} PDF Record(s)")
+        desc = f"Total size: {total_mb:.1f} MB"
+        if first_file:
+            desc = f"{first_file} — {desc}"
+        self.label_sub.setText(f"{desc} | Ready for analysis. Drop another folder to replace.")
+
+    def reset_state(self):
+        self.label_icon.setText("📥")
+        self.label_title.setText("Drag & Drop Case Folder or Medical PDF Records Here")
+        self.label_sub.setText("Supports dropping entire case folders (e.g. 'Aviva Health') or individual PDF files directly here")
+
 # Main Native Desktop Application Window
 class ForensicWorkstationApp(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("ForensicReview — Native Medicolegal Workstation")
         self.resize(1300, 850)
+        self.setAcceptDrops(True)
         
         icon_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app_icon.ico")
         if os.path.exists(icon_path):
@@ -262,6 +358,7 @@ class ForensicWorkstationApp(QMainWindow):
 
     def init_ui(self):
         main_widget = QWidget()
+        main_widget.setAcceptDrops(True)
         self.setCentralWidget(main_widget)
         main_layout = QHBoxLayout(main_widget)
         main_layout.setContentsMargins(12, 12, 12, 12)
@@ -307,6 +404,10 @@ class ForensicWorkstationApp(QMainWindow):
         self.btn_select_folder = QPushButton("📂 Select Entire Case Folder...")
         self.btn_select_folder.clicked.connect(self.select_folder_dialog)
         files_layout.addWidget(self.btn_select_folder)
+
+        self.btn_clear_files = QPushButton("✕ Clear Loaded Records")
+        self.btn_clear_files.clicked.connect(self.clear_records)
+        files_layout.addWidget(self.btn_clear_files)
         
         sidebar_layout.addWidget(files_group)
         
@@ -344,11 +445,17 @@ class ForensicWorkstationApp(QMainWindow):
         
         # RIGHT MAIN PANEL
         right_panel = QWidget()
+        right_panel.setAcceptDrops(True)
         right_layout = QVBoxLayout(right_panel)
         right_layout.setContentsMargins(4, 4, 4, 4)
         
+        # Prominent Dedicated Drag & Drop Zone
+        self.drop_zone = DropZoneWidget()
+        self.drop_zone.filesDropped.connect(self.process_dropped_paths)
+        right_layout.addWidget(self.drop_zone)
+        
         # File Queue Info Bar
-        self.status_lbl = QLabel("No patient records loaded. Use buttons on left to load files or folder.")
+        self.status_lbl = QLabel("No patient records loaded. Drag and drop any folder (e.g. 'Aviva Health') or PDF files above.")
         self.status_lbl.setFont(QFont("Segoe UI", 10))
         self.status_lbl.setStyleSheet("color: #334155; padding: 4px;")
         right_layout.addWidget(self.status_lbl)
@@ -373,6 +480,7 @@ class ForensicWorkstationApp(QMainWindow):
                    self.tab_slides, self.tab_literature, self.tab_deposition]:
             te.setReadOnly(True)
             te.setFont(QFont("Consolas", 10))
+            te.setAcceptDrops(False)
             
         self.tabs.addTab(self.tab_summary, "1. Summary")
         self.tabs.addTab(self.tab_causation, "2. Causation & WPI 30.17")
@@ -387,6 +495,7 @@ class ForensicWorkstationApp(QMainWindow):
         self.chat_display = QTextEdit()
         self.chat_display.setReadOnly(True)
         self.chat_display.setFont(QFont("Segoe UI", 10))
+        self.chat_display.setAcceptDrops(False)
         tab7_layout.addWidget(self.chat_display)
         
         qa_input_box = QHBoxLayout()
@@ -405,21 +514,71 @@ class ForensicWorkstationApp(QMainWindow):
         
         main_layout.addWidget(right_panel)
 
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            urls = event.mimeData().urls()
+            paths = [u.toLocalFile() for u in urls if u.isLocalFile()]
+            if paths:
+                self.process_dropped_paths(paths)
+            event.acceptProposedAction()
+        else:
+            event.ignore()
+
+    def process_dropped_paths(self, paths):
+        found_pdfs = []
+        folder_names = []
+        for p in paths:
+            if os.path.isdir(p):
+                folder_names.append(os.path.basename(p))
+                for root, _, files in os.walk(p):
+                    for f in files:
+                        if f.lower().endswith(".pdf"):
+                            found_pdfs.append(os.path.join(root, f))
+            elif os.path.isfile(p):
+                if p.lower().endswith(".pdf"):
+                    found_pdfs.append(p)
+
+        found_pdfs = sorted(list(dict.fromkeys(found_pdfs)))
+        if found_pdfs:
+            self.selected_files = found_pdfs
+            total_mb = sum(os.path.getsize(f) for f in found_pdfs if os.path.exists(f)) / (1024 * 1024)
+            first_name = os.path.basename(found_pdfs[0])
+            folder_str = folder_names[0] if len(folder_names) == 1 else (f"{len(folder_names)} folders" if folder_names else None)
+            
+            self.drop_zone.set_loaded_state(len(found_pdfs), folder_str, total_mb, first_name)
+            if folder_str:
+                self.status_lbl.setText(f"✓ Loaded {len(found_pdfs)} PDF record(s) from '{folder_str}' ({total_mb:.1f} MB total).")
+            else:
+                self.status_lbl.setText(f"✓ Loaded {len(found_pdfs)} PDF document(s) ({total_mb:.1f} MB total).")
+        else:
+            QMessageBox.warning(self, "No PDFs Found", "No PDF medical record files were found in the selected/dropped items.")
+
+    def clear_records(self):
+        self.selected_files = []
+        self.drop_zone.reset_state()
+        self.status_lbl.setText("No patient records loaded. Drag and drop any folder or use buttons on left.")
+
     def select_files_dialog(self):
         files, _ = QFileDialog.getOpenFileNames(self, "Select Medical PDF Records", "", "PDF Files (*.pdf)")
         if files:
-            self.selected_files = files
-            self.status_lbl.setText(f"✓ Selected {len(files)} document(s): {', '.join(os.path.basename(f) for f in files[:3])}...")
+            self.process_dropped_paths(files)
 
     def select_folder_dialog(self):
         folder = QFileDialog.getExistingDirectory(self, "Select Case Folder")
         if folder:
-            pdfs = sorted(glob.glob(os.path.join(folder, "*.pdf")))
-            if pdfs:
-                self.selected_files = pdfs
-                self.status_lbl.setText(f"✓ Loaded entire folder: {len(pdfs)} PDF files found in {os.path.basename(folder)}.")
-            else:
-                QMessageBox.warning(self, "No PDFs", f"No PDF files were found in {folder}.")
+            self.process_dropped_paths([folder])
 
     def start_analysis(self):
         if not self.selected_files:
