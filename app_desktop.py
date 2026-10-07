@@ -64,14 +64,27 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Load local API key if present
+# Load API key across Cloud, local .env, or OS environment
 def get_default_api_key():
+    # 1. Streamlit Cloud Secrets (Production)
+    try:
+        if "GEMINI_API_KEY" in st.secrets:
+            return str(st.secrets["GEMINI_API_KEY"]).strip()
+    except Exception:
+        pass
+
+    # 2. Local developer environment file (.env.local)
     env_local = os.path.join(os.path.dirname(__file__), ".env.local")
     if os.path.exists(env_local):
-        with open(env_local, "r") as f:
-            for line in f:
-                if line.startswith("GEMINI_API_KEY="):
-                    return line.strip().split("=", 1)[1]
+        try:
+            with open(env_local, "r") as f:
+                for line in f:
+                    if line.startswith("GEMINI_API_KEY="):
+                        return line.strip().split("=", 1)[1]
+        except Exception:
+            pass
+
+    # 3. System Environment Variable
     return os.environ.get("GEMINI_API_KEY", "")
 
 DEFAULT_API_KEY = get_default_api_key()
@@ -322,23 +335,34 @@ def create_pptx_deck(sections, file_name):
 if not st.session_state.analysis_sections:
     st.markdown("### 📁 Select or Drop Patient Medical Records")
     
-    col_a, col_b = st.columns([1, 1])
-    with col_a:
-        st.markdown("**Option A: Instant Desktop Benchmark Test**")
-        if st.button("📄 Load Farthing.pdf from Desktop (1,185 Pages / 83.6 MB)", use_container_width=True, type="secondary"):
-            farthing_path = r"C:\Users\mohal\OneDrive\Desktop\Farthing.pdf"
-            if os.path.exists(farthing_path):
+    farthing_path = r"C:\Users\mohal\OneDrive\Desktop\Farthing.pdf"
+    has_local_farthing = os.path.exists(farthing_path)
+    
+    if has_local_farthing:
+        col_a, col_b = st.columns([1, 1])
+        with col_a:
+            st.markdown("**Option A: Desktop Benchmark (1-Click)**")
+            if st.button("📄 Load Farthing.pdf (1,185 Pages / 83.6 MB)", use_container_width=True, type="secondary"):
                 with open(farthing_path, "rb") as f:
                     st.session_state.pending_bytes = f.read()
                 st.session_state.pending_name = "Farthing.pdf"
                 st.rerun()
-            else:
-                st.error(f"File not found at {farthing_path}")
-                
-    with col_b:
-        st.markdown("**Option B: Drag & Drop Any Case PDF**")
+                    
+        with col_b:
+            st.markdown("**Option B: Drag & Drop Any Case PDF**")
+            uploaded_file = st.file_uploader(
+                "Upload patient records (no page or size limits):",
+                type=["pdf"],
+                help="High-capacity native ingestion handles 2,000+ page records."
+            )
+            if uploaded_file is not None:
+                st.session_state.pending_bytes = uploaded_file.read()
+                st.session_state.pending_name = uploaded_file.name
+                st.rerun()
+    else:
+        st.markdown("**Upload Medical Records (PDF)**")
         uploaded_file = st.file_uploader(
-            "Upload any medical chart (no page or size limits):",
+            "Drag & drop any patient medical chart (no page or size limits):",
             type=["pdf"],
             help="High-capacity native ingestion handles 2,000+ page records."
         )
