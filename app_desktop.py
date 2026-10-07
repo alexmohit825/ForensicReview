@@ -352,11 +352,6 @@ def create_pptx_deck(sections, file_name):
 if not st.session_state.analysis_sections:
     st.markdown("### 📁 Ingest Case Records: Drag Files or Load Entire Folder")
     
-    # Check for local Farthing folder/file if running on desktop
-    local_farthing_dir = r"C:\Users\mohal\OneDrive\Desktop\Farthing"
-    local_farthing_file = r"C:\Users\mohal\OneDrive\Desktop\Farthing\Farthing.pdf"
-    has_local_env = os.path.exists(local_farthing_dir) or os.path.exists(local_farthing_file)
-    
     # Ingestion Tabs: Universal Drag & Drop vs Local Folder Path
     ingest_tab1, ingest_tab2 = st.tabs([
         "📥 Universal Drag & Drop (Multiple Files or Whole Folder)",
@@ -400,45 +395,29 @@ if not st.session_state.analysis_sections:
         st.markdown("**Enter a Local Folder Path Containing Case PDFs:**")
         folder_input = st.text_input(
             "Local Directory Path:",
-            value=local_farthing_dir if has_local_env else "",
+            value="",
             placeholder="e.g. C:\\Users\\mohal\\Documents\\Cases\\Patient_X"
         )
-        col_load, col_clear = st.columns([1, 1])
-        with col_load:
-            if st.button("📁 Load All PDFs from Folder", use_container_width=True):
-                if os.path.isdir(folder_input):
-                    found_pdfs = glob.glob(os.path.join(folder_input, "*.pdf"))
-                    if found_pdfs:
-                        loaded = []
-                        for fp in found_pdfs:
-                            with open(fp, "rb") as f:
-                                b = f.read()
-                                loaded.append({
-                                    'name': os.path.basename(fp),
-                                    'bytes': b,
-                                    'size_mb': len(b) / (1024 * 1024)
-                                })
-                        st.session_state.pending_files = loaded
-                        st.success(f"✓ Loaded {len(loaded)} PDF files from {folder_input}")
-                        st.rerun()
-                    else:
-                        st.warning(f"No .pdf files found in {folder_input}")
-                else:
-                    st.error(f"Directory not found: {folder_input}")
-        with col_clear:
-            if st.button("📄 Load Farthing.pdf Directly (1,185 Pages)", use_container_width=True):
-                target_fp = local_farthing_file if os.path.exists(local_farthing_file) else r"C:\Users\mohal\OneDrive\Desktop\Farthing.pdf"
-                if os.path.exists(target_fp):
-                    with open(target_fp, "rb") as f:
-                        b = f.read()
-                        st.session_state.pending_files = [{
-                            'name': "Farthing.pdf",
-                            'bytes': b,
-                            'size_mb': len(b) / (1024 * 1024)
-                        }]
+        if st.button("📁 Load All PDFs from Folder", use_container_width=True):
+            if os.path.isdir(folder_input):
+                found_pdfs = glob.glob(os.path.join(folder_input, "*.pdf"))
+                if found_pdfs:
+                    loaded = []
+                    for fp in found_pdfs:
+                        with open(fp, "rb") as f:
+                            b = f.read()
+                            loaded.append({
+                                'name': os.path.basename(fp),
+                                'bytes': b,
+                                'size_mb': len(b) / (1024 * 1024)
+                            })
+                    st.session_state.pending_files = loaded
+                    st.success(f"✓ Loaded {len(loaded)} PDF files from {folder_input}")
                     st.rerun()
                 else:
-                    st.error(f"File not found at {target_fp}")
+                    st.warning(f"No .pdf files found in {folder_input}")
+            else:
+                st.error(f"Directory not found: {folder_input}")
 
     # Display Queue of Loaded Files
     if st.session_state.pending_files:

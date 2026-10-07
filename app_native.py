@@ -247,7 +247,6 @@ class ForensicWorkstationApp(QMainWindow):
         self.api_key = get_default_api_key()
         
         self.init_ui()
-        self.check_default_farthing()
 
     def init_ui(self):
         main_widget = QWidget()
@@ -296,10 +295,6 @@ class ForensicWorkstationApp(QMainWindow):
         self.btn_select_folder = QPushButton("📂 Select Entire Case Folder...")
         self.btn_select_folder.clicked.connect(self.select_folder_dialog)
         files_layout.addWidget(self.btn_select_folder)
-        
-        self.btn_load_farthing = QPushButton("⚡ 1-Click Load Farthing Case")
-        self.btn_load_farthing.clicked.connect(self.load_farthing_case)
-        files_layout.addWidget(self.btn_load_farthing)
         
         sidebar_layout.addWidget(files_group)
         
@@ -398,18 +393,6 @@ class ForensicWorkstationApp(QMainWindow):
         
         main_layout.addWidget(right_panel)
 
-    def check_default_farthing(self):
-        f_dir = r"C:\Users\mohal\OneDrive\Desktop\Farthing"
-        f_pdf = r"C:\Users\mohal\OneDrive\Desktop\Farthing\Farthing.pdf"
-        if os.path.exists(f_pdf):
-            self.selected_files = [f_pdf]
-            self.status_lbl.setText(f"✓ Ready: Farthing.pdf (1,185 Pages | 83.6 MB) pre-loaded from desktop.")
-        elif os.path.exists(f_dir):
-            pdfs = glob.glob(os.path.join(f_dir, "*.pdf"))
-            if pdfs:
-                self.selected_files = pdfs
-                self.status_lbl.setText(f"✓ Ready: {len(pdfs)} PDF(s) loaded from Farthing folder.")
-
     def select_files_dialog(self):
         files, _ = QFileDialog.getOpenFileNames(self, "Select Medical PDF Records", "", "PDF Files (*.pdf)")
         if files:
@@ -425,14 +408,6 @@ class ForensicWorkstationApp(QMainWindow):
                 self.status_lbl.setText(f"✓ Loaded entire folder: {len(pdfs)} PDF files found in {os.path.basename(folder)}.")
             else:
                 QMessageBox.warning(self, "No PDFs", f"No PDF files were found in {folder}.")
-
-    def load_farthing_case(self):
-        f_pdf = r"C:\Users\mohal\OneDrive\Desktop\Farthing\Farthing.pdf"
-        if os.path.exists(f_pdf):
-            self.selected_files = [f_pdf]
-            self.status_lbl.setText(f"✓ Loaded Farthing.pdf (1,185 Pages | 83.6 MB). Ready to analyze.")
-        else:
-            QMessageBox.critical(self, "Not Found", f"Could not find Farthing.pdf at {f_pdf}")
 
     def start_analysis(self):
         if not self.selected_files:
