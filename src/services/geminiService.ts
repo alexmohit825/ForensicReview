@@ -27,7 +27,7 @@ export async function convertFileToBase64(file: File): Promise<string> {
   });
 }
 
-// Dual-Engine PDF Ingestion: Digital Text Extractor + On-Device OCR for Scanned Medical Records
+// Dual-Engine PDF Ingestion: Ultra-Fast Digital Text Extractor + Bounded On-Device OCR
 export async function extractTextFromPdf(
   file: File, 
   onStatusUpdate?: (status: string) => void
@@ -42,31 +42,49 @@ export async function extractTextFromPdf(
     const pdf = await loadingTask.promise;
     
     let fullText = `=== CLINICAL RECORD: ${file.name} (Total Pages: ${pdf.numPages}) ===\n\n`;
-    let ocrInitialized = false;
-    let tesseractWorker: any = null;
+    let scannedPagesDetected: number[] = [];
+    let digitalCharCount = 0;
 
+    // Pass 1: Blazing-fast digital text extraction across all pages (takes ~1-2 seconds)
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      if (onStatusUpdate && pageNum % 5 === 0) {
+        onStatusUpdate(`Scanning page ${pageNum} of ${pdf.numPages} in ${file.name}...`);
+      }
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
-      let pageText = textContent.items
+      const pageText = textContent.items
         .map((item: any) => item.str || '')
         .join(' ');
 
-      // If page has almost no selectable digital text, it is a scanned document -> run on-device OCR
-      if (pageText.trim().length < 50) {
-        try {
+      if (pageText.trim().length > 40) {
+        digitalCharCount += pageText.trim().length;
+        fullText += `[PAGE ${pageNum}]\n${pageText.trim()}\n\n`;
+      } else {
+        scannedPagesDetected.push(pageNum);
+      }
+    }
+
+    // Pass 2: Bounded on-device OCR only if substantial digital text was missing
+    // Cap OCR at max 12 pages so the browser tab NEVER hangs or freezes
+    if (scannedPagesDetected.length > 0 && digitalCharCount < 1000) {
+      const pagesToOcr = scannedPagesDetected.slice(0, 12);
+      if (onStatusUpdate) {
+        onStatusUpdate(`Document appears scanned. Running OCR on first ${pagesToOcr.length} pages...`);
+      }
+
+      let tesseractWorker: any = null;
+      try {
+        const { createWorker } = await import('tesseract.js');
+        tesseractWorker = await createWorker('eng');
+
+        for (let i = 0; i < pagesToOcr.length; i++) {
+          const pageNum = pagesToOcr[i];
           if (onStatusUpdate) {
-            onStatusUpdate(`Running OCR on scanned page ${pageNum} of ${pdf.numPages} in ${file.name}...`);
+            onStatusUpdate(`Running OCR on scanned page ${pageNum} (${i + 1}/${pagesToOcr.length})...`);
           }
 
-          if (!ocrInitialized) {
-            const { createWorker } = await import('tesseract.js');
-            tesseractWorker = await createWorker('eng');
-            ocrInitialized = true;
-          }
-
-          // Render PDF page to HTML5 Canvas viewport for OCR
-          const viewport = page.getViewport({ scale: 1.5 });
+          const page = await pdf.getPage(pageNum);
+          const viewport = page.getViewport({ scale: 1.2 });
           const canvas = document.createElement('canvas');
           const context = canvas.getContext('2d');
           canvas.height = viewport.height;
@@ -75,20 +93,19 @@ export async function extractTextFromPdf(
           if (context) {
             await page.render({ canvasContext: context, viewport }).promise;
             const ocrResult = await tesseractWorker.recognize(canvas);
-            pageText = ocrResult.data.text || '';
+            const ocrText = ocrResult.data.text || '';
+            if (ocrText.trim().length > 0) {
+              fullText += `[SCANNED PAGE ${pageNum} OCR]\n${ocrText.trim()}\n\n`;
+            }
           }
-        } catch (ocrErr) {
-          console.warn(`OCR failed on page ${pageNum}:`, ocrErr);
+        }
+      } catch (ocrErr) {
+        console.warn('OCR fallback error:', ocrErr);
+      } finally {
+        if (tesseractWorker) {
+          await tesseractWorker.terminate();
         }
       }
-
-      if (pageText.trim().length > 0) {
-        fullText += `[PAGE ${pageNum}]\n${pageText.trim()}\n\n`;
-      }
-    }
-
-    if (tesseractWorker) {
-      await tesseractWorker.terminate();
     }
 
     return fullText;
@@ -140,6 +157,7 @@ export async function analyzeRecordsWithGemini(
   files: File[],
   pastedText: string,
   apiKey: string,
+  expertRole: 'PLAINTIFF' | 'DEFENSE' = 'PLAINTIFF',
   onStatusUpdate?: (status: string) => void
 ): Promise<MedicolegalCaseAnalysis> {
   if (!apiKey) {
@@ -150,11 +168,15 @@ export async function analyzeRecordsWithGemini(
     onStatusUpdate('Reading clinical records with Google Gemini AI...');
   }
 
+  const roleInstruction = expertRole === 'PLAINTIFF'
+    ? `\n\nRETAINED ROLE: You are retained as the PLAINTIFF'S EXPERT (Injured Party). Frame causation, Washington WPI 30.17 Eggshell Skull analysis, and Deliverable 6 Deposition Prep strictly from the perspective of an expert testifying on behalf of the Plaintiff/Injured Party, anticipating aggressive defense attacks and providing rock-solid rebuttals.`
+    : `\n\nRETAINED ROLE: You are retained as the DEFENSE'S EXPERT (Retaining Insurer/Counsel). Frame causation, objective record analysis, and Deliverable 6 Deposition Prep strictly from the perspective of an expert testifying on behalf of the Defense, identifying pre-existing asymptomatic degeneration, biomechanical threshold gaps, subjective complaints unsupported by MRI/EMG, and anticipating aggressive plaintiff cross-examination attacks.`;
+
   const parts: any[] = [];
 
   // Add system instruction prompt part
   parts.push({
-    text: `${SYSTEM_INSTRUCTION}\n\nAnalyze the following patient medical records and output the complete 5 deliverables in JSON.`
+    text: `${SYSTEM_INSTRUCTION}${roleInstruction}\n\nAnalyze the following patient medical records and output all deliverables in strictly structured JSON. Extract the true patient name, dates, imaging, and clinical details directly from the provided records.`
   });
 
   if (pastedText && pastedText.trim().length > 0) {
@@ -172,7 +194,7 @@ export async function analyzeRecordsWithGemini(
 
     if (file.type === 'application/pdf') {
       if (onStatusUpdate) {
-        onStatusUpdate(`Extracting clinical text and running OCR on ${file.name}...`);
+        onStatusUpdate(`Extracting clinical text and scanning ${file.name}...`);
       }
       const extractedText = await extractTextFromPdf(file, onStatusUpdate);
       if (extractedText && extractedText.trim().length > 100) {
@@ -208,7 +230,7 @@ export async function analyzeRecordsWithGemini(
   }
 
   if (onStatusUpdate) {
-    onStatusUpdate('Gemini AI is analyzing causation, Washington eggshell skull law, and formulating opinion...');
+    onStatusUpdate('Gemini AI is analyzing records, causation vectors, and formulating opinion...');
   }
 
   // Model cascade: Google active models only (deprecated gemini-2.5 and gemini-2.0 models are excluded to prevent 404s)
@@ -253,7 +275,6 @@ export async function analyzeRecordsWithGemini(
         const errorBody = await response.text();
         lastErrorMsg = `Gemini API (${model} - HTTP ${response.status}): ${errorBody}`;
         console.warn(`Model ${model} returned error:`, errorBody);
-        // Continue to fallback model if 404 (model not found/deprecated) or 400/503
         continue;
       }
 
@@ -274,22 +295,22 @@ export async function analyzeRecordsWithGemini(
   }
 
   if (onStatusUpdate) {
-    onStatusUpdate('Rendering timeline graphic, PowerPoint deck, and literature cards...');
+    onStatusUpdate('Synthesizing timeline graphic, PowerPoint deck, and deposition prep...');
   }
 
   const parsed = JSON.parse(rawText);
 
-  // Normalize into standard MedicolegalCaseAnalysis
+  // Normalize into standard MedicolegalCaseAnalysis without hardcoding Quinonez defaults
   const analysis: MedicolegalCaseAnalysis = {
     id: `case-${Date.now()}`,
     createdAt: new Date().toISOString(),
     patientInfo: {
-      patientName: parsed.patientInfo?.patientName || 'Holly Quinonez',
-      patientAge: parsed.patientInfo?.patientAge || 36,
-      patientSex: parsed.patientInfo?.patientSex || 'Female',
-      dateOfIncident: parsed.patientInfo?.dateOfIncident || '2020-06-15',
-      caseCaption: parsed.patientInfo?.caseCaption || 'Matter of Holly Quinonez (MVA Spine Injury)',
-      retainingCounsel: parsed.patientInfo?.retainingCounsel || 'Williamson & Mercer, PLLC'
+      patientName: parsed.patientInfo?.patientName || 'Medical Case Review',
+      patientAge: parsed.patientInfo?.patientAge || undefined,
+      patientSex: parsed.patientInfo?.patientSex || 'Unspecified',
+      dateOfIncident: parsed.patientInfo?.dateOfIncident || '',
+      caseCaption: parsed.patientInfo?.caseCaption || 'Forensic Medical Review',
+      retainingCounsel: parsed.patientInfo?.retainingCounsel || ''
     },
     deliverable1_summary: {
       executiveOverview: parsed.deliverable1_summary?.executiveOverview || parsed.clinicalSummary?.executiveOverview || '',
@@ -309,7 +330,7 @@ export async function analyzeRecordsWithGemini(
     deliverable4_presentationSlides: parsed.deliverable4_presentationSlides || parsed.presentationSlides || [],
     deliverable5_literature: parsed.deliverable5_literature || parsed.literatureList || [],
     deliverable6_depositionPrep: parsed.deliverable6_depositionPrep ? {
-      expertRole: parsed.deliverable6_depositionPrep.expertRole || 'PLAINTIFF',
+      expertRole: parsed.deliverable6_depositionPrep.expertRole || expertRole,
       plaintiffSpecificStrategy: parsed.deliverable6_depositionPrep.plaintiffSpecificStrategy || '',
       defenseSpecificStrategy: parsed.deliverable6_depositionPrep.defenseSpecificStrategy || '',
       goldenRulesForDeposition: parsed.deliverable6_depositionPrep.goldenRulesForDeposition || [
@@ -320,7 +341,19 @@ export async function analyzeRecordsWithGemini(
         'Pause before answering to permit retaining counsel the opportunity to lodge formal objections.'
       ],
       crossExaminationVulnerabilities: parsed.deliverable6_depositionPrep.crossExaminationVulnerabilities || []
-    } : undefined
+    } : {
+      expertRole,
+      plaintiffSpecificStrategy: '',
+      defenseSpecificStrategy: '',
+      goldenRulesForDeposition: [
+        'Never adopt opposing counsel’s characterizations or loaded adjectives.',
+        'Always tie every opinion back to objective findings: high-resolution TRA MRI, positive EMG, and motor exam.',
+        'Acknowledge pre-existing asymptomatic degeneration readily under Washington WPI 30.17 Eggshell Skull doctrine.',
+        'Do not speculate beyond your review of the documented medical record.',
+        'Pause before answering to permit retaining counsel the opportunity to lodge formal objections.'
+      ],
+      crossExaminationVulnerabilities: []
+    }
   };
 
   return analysis;

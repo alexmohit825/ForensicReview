@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { MedicolegalCaseAnalysis } from './types/medicolegal';
+import { MedicolegalCaseAnalysis, ExpertRole } from './types/medicolegal';
 import { 
   analyzeRecordsWithGemini, 
-  getQuinonezDemoCase, 
   getSavedGeminiApiKey, 
   hasGeminiApiKey 
 } from './services/geminiService';
@@ -16,7 +15,7 @@ import { Deliverable5Literature } from './components/Deliverable5Literature';
 import { Deliverable6DepositionPrep } from './components/Deliverable6DepositionPrep';
 import { ApiKeyModal } from './components/ApiKeyModal';
 
-const ACTIVE_ANALYSIS_STORAGE_KEY = 'forensicreview_active_analysis_v4';
+const ACTIVE_ANALYSIS_STORAGE_KEY = 'forensicreview_active_analysis_v5';
 
 export const App: React.FC = () => {
   const [caseAnalysis, setCaseAnalysis] = useState<MedicolegalCaseAnalysis | null>(() => {
@@ -28,8 +27,8 @@ export const App: React.FC = () => {
         console.error('Failed to parse saved case analysis', e);
       }
     }
-    // Default to the pre-loaded Quinonez demonstration case so the user immediately sees the 5 deliverables!
-    return getQuinonezDemoCase();
+    // Clean initial state: App awaits user record upload without pre-loaded Quinonez case
+    return null;
   });
 
   const [activeTab, setActiveTab] = useState<number>(1);
@@ -49,7 +48,7 @@ export const App: React.FC = () => {
     }
   }, [caseAnalysis]);
 
-  const handleAnalyzeRecords = async (files: File[], text: string) => {
+  const handleAnalyzeRecords = async (files: File[], text: string, role: ExpertRole) => {
     const apiKey = getSavedGeminiApiKey();
     if (!apiKey) {
       setIsApiKeyModalOpen(true);
@@ -58,7 +57,7 @@ export const App: React.FC = () => {
 
     try {
       setIsLoading(true);
-      const result = await analyzeRecordsWithGemini(files, text, apiKey, (msg) => {
+      const result = await analyzeRecordsWithGemini(files, text, apiKey, role, (msg) => {
         setStatusMessage(msg);
       });
       setCaseAnalysis(result);
@@ -70,13 +69,6 @@ export const App: React.FC = () => {
       setIsLoading(false);
       setStatusMessage('');
     }
-  };
-
-  const handleLoadQuinonez = () => {
-    const demo = getQuinonezDemoCase();
-    setCaseAnalysis(demo);
-    setActiveTab(1);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleNewCase = () => {
@@ -96,7 +88,6 @@ export const App: React.FC = () => {
         hasAnalysis={Boolean(caseAnalysis)}
         hasApiKey={hasApiKey}
         onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
-        onLoadQuinonez={handleLoadQuinonez}
         onNewCase={handleNewCase}
       />
 
@@ -109,7 +100,6 @@ export const App: React.FC = () => {
             onAnalyze={handleAnalyzeRecords}
             isLoading={isLoading}
             statusMessage={statusMessage}
-            onLoadQuinonez={handleLoadQuinonez}
             hasApiKey={hasApiKey}
             onOpenApiKeyModal={() => setIsApiKeyModalOpen(true)}
           />

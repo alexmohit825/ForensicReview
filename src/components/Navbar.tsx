@@ -8,7 +8,6 @@ interface NavbarProps {
   hasAnalysis: boolean;
   hasApiKey: boolean;
   onOpenApiKeyModal: () => void;
-  onLoadQuinonez: () => void;
   onNewCase: () => void;
 }
 
@@ -19,7 +18,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   hasAnalysis,
   hasApiKey,
   onOpenApiKeyModal,
-  onLoadQuinonez,
   onNewCase
 }) => {
   return (
@@ -43,7 +41,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   AI Medicolegal Workstation
                 </span>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-300">
-                  v4.4 • Dual-Engine OCR Ingestion Active
+                  v4.5 • Active
                 </span>
               </div>
               <div className="text-xs text-slate-500 font-medium truncate max-w-xs">
@@ -54,16 +52,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Action Bar */}
           <div className="flex items-center gap-2">
-            
-            {/* 1-Click Load Real Quinonez Case */}
-            <button
-              onClick={onLoadQuinonez}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100 transition-colors shadow-xs"
-              title="Load Holly Quinonez spine injury case (Live Demonstration of all 5 Deliverables)"
-            >
-              <Sparkles className="w-4 h-4 text-emerald-600" />
-              <span>Load Quinonez Case (Demo)</span>
-            </button>
 
             {/* Gemini API Key Trigger */}
             <button
