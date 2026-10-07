@@ -45,11 +45,25 @@ def get_default_api_key():
             pass
     return os.environ.get("GEMINI_API_KEY", "")
 
+## Filter out non-clinical software viewer manuals from medical imaging media
+def is_clinical_record(filepath):
+    base = os.path.basename(filepath).lower()
+    non_clinical_patterns = [
+        'gear', 'help', 'manual', 'release_notes', 'specifications', 
+        'technical_spec', 'readme', 'license', 'install'
+    ]
+    return not any(pat in base for pat in non_clinical_patterns)
+
 # Sequential Memory-Safe Clinical Extractor
-def extract_consolidated_dossier(file_paths, max_total_pages=150, progress_callback=None):
+def extract_consolidated_dossier(file_paths, max_total_pages=40, progress_callback=None):
     all_pages = []
     grand_total_pages = 0
-    total_files = len(file_paths)
+    
+    # Filter out non-clinical files (e.g. CD viewer manuals)
+    valid_paths = [fp for fp in file_paths if is_clinical_record(fp)]
+    if not valid_paths:
+        valid_paths = file_paths
+    total_files = len(valid_paths)
     
     keywords = [
         'MRI', 'CT', 'IMPRESSION', 'DISC', 'HERNIATION', 'SURGERY', 'COLLISION', 
@@ -59,40 +73,44 @@ def extract_consolidated_dossier(file_paths, max_total_pages=150, progress_callb
         'EXAM', 'MYELOPATHY', 'FUSION', 'NEUROSURGERY', 'ANESTHESIA', 'ARTHRODESIS'
     ]
     
-    for idx, fp in enumerate(file_paths):
+    for idx, fp in enumerate(valid_paths):
         fname = os.path.basename(fp)
         if progress_callback:
-            progress_callback(int((idx / total_files) * 40), f"Scanning {fname}...")
+            progress_callback(int((idx / total_files) * 25), f"Scanning {fname}...")
         
-        doc = pymupdf.open(fp)
-        doc_pages = len(doc)
-        grand_total_pages += doc_pages
-        for i in range(doc_pages):
-            txt = doc[i].get_text()
-            if len(txt.strip()) > 30:
-                up = txt.upper()
-                sc = sum(1 for kw in keywords if kw in up)
-                all_pages.append({
-                    'file': fname,
-                    'page': i + 1,
-                    'score': sc,
-                    'text': txt.strip()
-                })
-        doc.close()
+        try:
+            doc = pymupdf.open(fp)
+            doc_pages = len(doc)
+            grand_total_pages += doc_pages
+            for i in range(doc_pages):
+                txt = doc[i].get_text()
+                if len(txt.strip()) > 30:
+                    up = txt.upper()
+                    sc = sum(1 for kw in keywords if kw in up)
+                    all_pages.append({
+                        'file': fname,
+                        'page': i + 1,
+                        'score': sc,
+                        'text': txt.strip()
+                    })
+            doc.close()
+        except Exception:
+            pass
         
     all_pages.sort(key=lambda x: x['score'], reverse=True)
     selected_pages = all_pages[:max_total_pages]
     
     dossier = "=== CONSOLIDATED CLINICAL RECORD DOSSIER ===\n"
-    dossier += f"Total Documents: {total_files} | Aggregate Pages: {grand_total_pages:,} | High-Yield Forensic Pages: {len(selected_pages)}\n\n"
+    dossier += f"Total Records: {total_files} | Aggregate Pages: {grand_total_pages:,} | Top Clinical Pages: {len(selected_pages)}\n\n"
     for p in selected_pages:
-        dossier += f"[SOURCE DOCUMENT: {p['file']} | PAGE {p['page']}]\n{p['text']}\n\n"
+        dossier += f"[RECORD: {p['file']} | PAGE {p['page']}]\n{p['text']}\n\n"
         
     return dossier, grand_total_pages, len(selected_pages)
 
-# Background Analysis Worker Thread
+# Background Analysis Worker Thread - Progressive Pipeline Architecture
 class AnalysisWorker(QThread):
     progress = pyqtSignal(int, str)
+    section_ready = pyqtSignal(str, str) # (section_key, text)
     finished = pyqtSignal(dict, str)
     error = pyqtSignal(str)
 
@@ -104,13 +122,14 @@ class AnalysisWorker(QThread):
 
     def run(self):
         try:
-            self.progress.emit(5, "Reading case files from local hard drive...")
+            self.progress.emit(5, "Scanning medical records from local drive...")
             dossier, total_p, sel_p = extract_consolidated_dossier(
                 self.file_paths,
+                max_total_pages=40,
                 progress_callback=lambda pct, msg: self.progress.emit(pct, msg)
             )
             
-            self.progress.emit(45, f"Scored {total_p:,} pages. Synthesized {sel_p} clinical pages. Contacting Gemini 3.8 Flash...")
+            self.progress.emit(25, f"Scored {total_p:,} pages. Ingested {sel_p} high-yield clinical pages.")
             
             client = genai.Client(api_key=self.api_key)
             stance_text = "PLAINTIFF EXPERT (Injured Party)" if self.is_plaintiff else "DEFENSE EXPERT (Retaining Insurer/Counsel)"
@@ -120,71 +139,162 @@ class AnalysisWorker(QThread):
                 "Focus on proving pre-existing chronic natural degenerative spondylosis, minor delta-V mechanics, intervening domestic falls, treatment gaps, lack of acute traumatic spinal disruption, and countering plaintiff claims."
             )
             
-            system_prompt = f"""
-You are a Board-Certified Neurosurgeon and premier Forensic Medicolegal Causation Expert in Washington State.
-You are retained as the: {stance_text}.
+            sections = {
+                "summary": "",
+                "causation": "",
+                "timeline": "",
+                "slides": "",
+                "literature": "",
+                "deposition": ""
+            }
+
+            # STAGE 1: Clinical Summary (Tab 1)
+            self.progress.emit(30, "Stage 1/5: Synthesizing Complete Clinical Summary...")
+            p1 = f"""You are a Board-Certified Neurosurgeon and premier Forensic Medicolegal Causation Expert in Washington State.
+Retained Role: {stance_text}
 {stance_focus}
 
-Analyze the provided clinical records from all ingested source documents and return your complete findings structured with these EXACT 6 section delimiter tags:
+Analyze the ingested clinical records and produce a thorough, authoritative Clinical Records Summary:
+# CLINICAL RECORDS SUMMARY
+- **Patient Demographics:** Full Name, DOB, Age, Gender, Date of Injury/Collision.
+- **Trauma Mechanism & HPI:** Detailed initial trauma mechanics, vehicle damage, delta-V force transfer, and initial onset of neuro-spinal symptoms.
+- **Chronological Diagnostic Imaging Review:** Comprehensive review of all X-rays, CTs, and MRIs with exact dates, findings, and impressions across all facilities.
+- **Physical Examination Highlights:** Motor, sensory, reflex, and spinal exam findings across time.
+- **Full Treatment Course & Interventions:** Injections, physical therapy, surgical procedures, and clinical responses.
 
-<<<SECTION:SUMMARY>>>
-[Complete Clinical Summary: Patient Full Name, DOB, Age, Gender, Date of Injury/Incident, Comprehensive History of Present Illness (HPI) & Initial Trauma Mechanism, Chronological Diagnostic Imaging Review with exact dates and impressions across all documents, Physical Examination Highlights Across Time, and Full Treatment Course/Interventions]
+Clinical Dossier:
+{dossier}
+"""
+            r1 = client.models.generate_content(model='gemini-3.8-flash', contents=p1).text.strip()
+            sections["summary"] = r1
+            self.section_ready.emit("summary", r1)
+            self.progress.emit(45, "✓ Stage 1 Complete: Clinical Summary loaded! Formulating WPI 30.17 Causation...")
 
-<<<SECTION:CAUSATION>>>
-[Formal Causation Opinion & Standard of Care: Definitive causation opinion stated "Within a reasonable degree of medical probability", Biomechanical causation & vector analysis, Detailed Washington State Pattern Jury Instruction 30.17 (WPI 30.17 Eggshell Skull / Traumatic Aggravation) Analysis, Distinction between compensable conditions vs non-compensable/intervening conditions, and Prognosis/MMI/Future care]
+            # STAGE 2: Washington WPI 30.17 Causation (Tab 2)
+            self.progress.emit(50, "Stage 2/5: Formulating Washington WPI 30.17 Causation Opinion...")
+            p2 = f"""You are a Board-Certified Neurosurgeon and premier Forensic Medicolegal Causation Expert in Washington State.
+Retained Role: {stance_text}
+{stance_focus}
 
-<<<SECTION:TIMELINE>>>
-[Detailed Chronological Timeline: Unified Markdown table of distinct encounters across all ingested files with columns: Date (YYYY-MM-DD) | Source File & Page | Facility & Provider | Clinical Event Summary | Exact Verbatim Record Excerpt | Significance (CRITICAL vs ROUTINE)]
+Based on the clinical summary and medical records, provide your formal causation opinion:
+# FORENSIC CAUSATION OPINION & WASHINGTON WPI 30.17 ANALYSIS
+**1. Definitive Causation Opinion:** Stated explicitly "Within a reasonable degree of medical probability".
+**2. Biomechanical Causation & Trauma Vector:** Biomechanical impact transfer and tissue forces.
+**3. Washington Pattern Jury Instruction WPI 30.17 Analysis:**
+- Detailed legal application of WPI 30.17 (Aggravation of Pre-Existing Condition / Eggshell Skull rule).
+- How the collision lighting up or exacerbating dormant asymptomatic degenerative spondylosis is legally compensable under Washington law.
+- Why defense arguments attributing symptoms purely to pre-existing natural degeneration fail.
+**4. Compensable vs. Intervening Conditions:** Clear demarcation of related conditions vs. unrelated comorbidities or subsequent domestic falls.
+**5. Prognosis, MMI, & Future Care:** Maximum Medical Improvement status, surgical necessity, and lifetime care needs.
+
+Case Summary:
+{r1[:5000]}
+
+Clinical Dossier:
+{dossier[:70000]}
+"""
+            r2 = client.models.generate_content(model='gemini-3.8-flash', contents=p2).text.strip()
+            sections["causation"] = r2
+            self.section_ready.emit("causation", r2)
+            self.progress.emit(65, "✓ Stage 2 Complete: Causation loaded! Building Chronological Timeline...")
+
+            # STAGE 3: Chronological Medical Timeline (Tab 3)
+            self.progress.emit(70, "Stage 3/5: Constructing Chronological Medical Timeline...")
+            p3 = f"""You are a Forensic Medicolegal Expert.
+Construct a focused Chronological Medical Timeline of the top 20-25 pivotal medical encounters from these records:
+# CHRONOLOGICAL MEDICAL TIMELINE
+| Date | Facility & Provider | Clinical Encounter & Findings | Exact Verbatim Record Excerpt | Significance |
+|---|---|---|---|---|
+(Include initial trauma/ER, imaging studies, operative procedures, specialist consults, and MMI evaluations chronologically)
+
+Case Summary:
+{r1[:4000]}
+
+Clinical Dossier:
+{dossier[:70000]}
+"""
+            r3 = client.models.generate_content(model='gemini-3.8-flash', contents=p3).text.strip()
+            sections["timeline"] = r3
+            self.section_ready.emit("timeline", r3)
+            self.progress.emit(80, "✓ Stage 3 Complete: Timeline loaded! Generating Courtroom Slides & Literature...")
+
+            # STAGE 4: Courtroom Slides & Peer-Reviewed Literature (Tabs 4 & 5)
+            self.progress.emit(82, "Stage 4/5: Generating Courtroom Exhibit Slides & Literature Support...")
+            p4 = f"""You are a Board-Certified Neurosurgeon and Forensic Medicolegal Expert in Washington State.
+Retained Role: {stance_text}
+
+Produce Courtroom Presentation Slides and Peer-Reviewed Literature Support with these EXACT delimiter tags:
 
 <<<SECTION:SLIDES>>>
-[PowerPoint Courtroom Presentation Slides: 8-10 high-impact slides. For each slide include Slide Title, Medical Date, Source Document, Clinic/Doctor, Exact Verbatim Chart Quote, and Why this note is crucial evidence in court]
+# COURTROOM EXHIBIT PRESENTATION SLIDES
+Provide 8 high-impact presentation slides for trial. For each slide:
+- **Slide Title**
+- **Date & Facility**
+- **Key Evidentiary Finding**
+- **Exact Verbatim Record Quote**
+- **Trial Significance:** Why this note persuades the jury on causation and injury severity.
 
 <<<SECTION:LITERATURE>>>
-[Top 5 Peer-Reviewed Literature Articles: Exactly 5 high-impact medical journal citations (Spine, JNS, NEJM, Lancet) with Authors, Title, Journal, Year, and Forensic Relevance supporting your causation conclusions]
+# PEER-REVIEWED LITERATURE CITATIONS
+Provide exactly 5 landmark peer-reviewed spine/neurosurgical journal articles (Spine, JNS, NEJM, Lancet):
+For each article:
+- **Full Citation:** Authors, Title, Journal, Year, Volume/Pages.
+- **Key Scientific Finding:** What the study proved.
+- **Forensic Application:** How this directly supports Dr. Mohit's causation opinion in this matter.
 
-<<<SECTION:DEPOSITION>>>
-[Deposition Preparation & Cross-Examination Attacks: Retained Role Strategy Roadmap ({stance_text}), 5 Golden Rules for the Witness Stand, and 4-6 Specific Cross-Examination Trap Questions Opposing Counsel Will Ask with: Opposing Counsel Attack Angle, Likely Trap Questions, Scripted High-Level Neurosurgical Response for Dr. Mohit, The Trap to Avoid, and Specific Record Citations from the source files]
+Case Summary:
+{r1[:3500]}
+
+Causation Opinion:
+{r2[:3500]}
 """
-            self.progress.emit(60, "Gemini 3.8 Flash synthesizing 6 courtroom deliverables...")
-            resp = client.models.generate_content(
-                model='gemini-3.8-flash',
-                contents=dossier + "\n\n" + system_prompt
-            )
-            
-            text = resp.text
-            sections = {
-                "summary": "No summary generated.",
-                "causation": "No causation opinion generated.",
-                "timeline": "No timeline generated.",
-                "slides": "No slides generated.",
-                "literature": "No literature generated.",
-                "deposition": "No deposition prep generated.",
-                "full_text": text
-            }
-            
-            tags = [
-                ("summary", "<<<SECTION:SUMMARY>>>"),
-                ("causation", "<<<SECTION:CAUSATION>>>"),
-                ("timeline", "<<<SECTION:TIMELINE>>>"),
-                ("slides", "<<<SECTION:SLIDES>>>"),
-                ("literature", "<<<SECTION:LITERATURE>>>"),
-                ("deposition", "<<<SECTION:DEPOSITION>>>")
-            ]
-            
-            for i, (key, tag) in enumerate(tags):
-                if tag in text:
-                    start = text.find(tag) + len(tag)
-                    end = len(text)
-                    for _, next_tag in tags[i+1:]:
-                        if next_tag in text:
-                            end = text.find(next_tag)
-                            break
-                    sections[key] = text[start:end].strip()
-                else:
-                    sections[key] = text
-                    
-            self.progress.emit(100, "Analysis complete!")
+            r4 = client.models.generate_content(model='gemini-3.8-flash', contents=p4).text.strip()
+            if "<<<SECTION:SLIDES>>>" in r4 and "<<<SECTION:LITERATURE>>>" in r4:
+                sl_part = r4.split("<<<SECTION:SLIDES>>>")[1].split("<<<SECTION:LITERATURE>>>")[0].strip()
+                lit_part = r4.split("<<<SECTION:LITERATURE>>>")[1].strip()
+            elif "<<<SECTION:SLIDES>>>" in r4:
+                sl_part = r4.split("<<<SECTION:SLIDES>>>")[1].strip()
+                lit_part = "Literature citations integrated in slides."
+            else:
+                sl_part = r4
+                lit_part = "Literature citations integrated."
+                
+            sections["slides"] = sl_part
+            sections["literature"] = lit_part
+            self.section_ready.emit("slides", sl_part)
+            self.section_ready.emit("literature", lit_part)
+            self.progress.emit(92, "✓ Stage 4 Complete: Slides & Literature loaded! Scripting Deposition Attacks...")
+
+            # STAGE 5: Deposition Prep & Cross-Examination Attacks (Tab 6)
+            self.progress.emit(94, "Stage 5/5: Scripting Deposition Preparation & Cross-Examination Attacks...")
+            p5 = f"""You are a Board-Certified Neurosurgeon and Forensic Medicolegal Expert in Washington State.
+Retained Role: {stance_text}
+
+Produce Deposition Preparation and Cross-Examination Defense Strategies:
+# DEPOSITION PREPARATION & CROSS-EXAMINATION ATTACKS
+**1. Strategic Expert Roadmap ({stance_text}):** Core themes to emphasize and protect.
+**2. Five Golden Rules for the Witness Stand:** Essential demeanor and testimony tactics.
+**3. Cross-Examination Trap Questions & Scripted Neurosurgical Defenses:**
+Provide 4-5 specific attack angles opposing counsel will use:
+- **Opposing Counsel Attack Angle:** (e.g. Degenerative vs Traumatic, Prior Gaps in Care, Pre-existing Degeneration, Low Impact Speed).
+- **Likely Trap Question:** Exact adversarial question opposing counsel will ask Dr. Mohit.
+- **Scripted High-Level Response:** Direct, authoritative neurosurgical answer citing records.
+- **The Trap to Avoid:** Why a naive witness stumbles here.
+- **Source Citations:** Specific record pages and clinical proof.
+
+Case Summary:
+{r1[:3500]}
+
+Causation Opinion:
+{r2[:3500]}
+"""
+            r5 = client.models.generate_content(model='gemini-3.8-flash', contents=p5).text.strip()
+            sections["deposition"] = r5
+            self.section_ready.emit("deposition", r5)
+
+            self.progress.emit(100, "✓ Complete 6-Part Forensic Workstation Review Complete!")
             self.finished.emit(sections, dossier)
+
         except Exception as e:
             self.error.emit(str(e))
 
@@ -595,9 +705,19 @@ class ForensicWorkstationApp(QMainWindow):
         self.progress_bar.setValue(0)
         self.status_lbl.setText("Analyzing records locally with native engine...")
         
+        self.analysis_sections = {
+            "summary": "",
+            "causation": "",
+            "timeline": "",
+            "slides": "",
+            "literature": "",
+            "deposition": ""
+        }
+        
         is_plaintiff = self.radio_plaintiff.isChecked()
         self.worker = AnalysisWorker(self.selected_files, is_plaintiff, key)
         self.worker.progress.connect(self.update_progress)
+        self.worker.section_ready.connect(self.section_arrived)
         self.worker.finished.connect(self.analysis_complete)
         self.worker.error.connect(self.analysis_failed)
         self.worker.start()
@@ -606,6 +726,24 @@ class ForensicWorkstationApp(QMainWindow):
         self.progress_bar.setValue(val)
         self.status_lbl.setText(msg)
 
+    def section_arrived(self, key, text):
+        self.analysis_sections[key] = text
+        if key == "summary":
+            self.tab_summary.setMarkdown(text)
+            self.tabs.setCurrentIndex(0)
+            self.btn_export_word.setEnabled(True)
+        elif key == "timeline":
+            self.tab_timeline.setMarkdown(text)
+        elif key == "causation":
+            self.tab_causation.setMarkdown(text)
+        elif key == "slides":
+            self.tab_slides.setMarkdown(text)
+            self.btn_export_pptx.setEnabled(True)
+        elif key == "literature":
+            self.tab_literature.setMarkdown(text)
+        elif key == "deposition":
+            self.tab_deposition.setMarkdown(text)
+
     def analysis_complete(self, sections, dossier):
         self.analysis_sections = sections
         self.current_dossier = dossier
@@ -613,16 +751,9 @@ class ForensicWorkstationApp(QMainWindow):
         self.btn_export_word.setEnabled(True)
         self.btn_export_pptx.setEnabled(True)
         self.progress_bar.setVisible(False)
-        self.status_lbl.setText("✓ Forensic Analysis Complete! Review deliverables across the tabs below.")
+        self.status_lbl.setText("✓ Complete 6-Part Forensic Review Ready! All tabs populated.")
         
-        self.tab_summary.setMarkdown(sections.get('summary', ''))
-        self.tab_causation.setMarkdown(sections.get('causation', ''))
-        self.tab_timeline.setMarkdown(sections.get('timeline', ''))
-        self.tab_slides.setMarkdown(sections.get('slides', ''))
-        self.tab_literature.setMarkdown(sections.get('literature', ''))
-        self.tab_deposition.setMarkdown(sections.get('deposition', ''))
-        
-        self.chat_display.append("<b>Workstation:</b> Case dossier loaded. You may now ask specific questions about surgery compensability, cross-examination attacks, or chart citations.<br>")
+        self.chat_display.append("<b>Workstation:</b> Full case dossier and all 6 courtroom deliverables loaded. You may now ask Copilot specific questions about surgery compensability, cross-examination attacks, or chart citations.<br>")
 
     def analysis_failed(self, err_msg):
         self.btn_analyze.setEnabled(True)
