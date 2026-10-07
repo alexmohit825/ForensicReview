@@ -42,6 +42,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
                   AI Medicolegal Workstation
                 </span>
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-300">
+                  v4.2 • Gemini 3.8 Active
+                </span>
               </div>
               <div className="text-xs text-slate-500 font-medium truncate max-w-xs">
                 {patientName ? `Active Case: ${patientName}` : 'Awaiting Medical Records Ingestion'}

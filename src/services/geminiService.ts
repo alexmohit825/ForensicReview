@@ -120,13 +120,11 @@ export async function analyzeRecordsWithGemini(
     onStatusUpdate('Gemini AI is analyzing causation, Washington eggshell skull law, and formulating opinion...');
   }
 
-  // Model cascade: Google active models (gemini-3.8-flash is the primary active model specified by Google API error message)
+  // Model cascade: Google active models only (deprecated gemini-2.5 and gemini-2.0 models are excluded to prevent 404s)
   const candidateModels = [
     'gemini-3.8-flash',
     'gemini-3.5-flash-lite',
-    'gemini-3.1-pro-preview',
-    'gemini-2.5-flash',
-    'gemini-2.5-pro'
+    'gemini-3.1-pro-preview'
   ];
 
   const requestPayload = {
