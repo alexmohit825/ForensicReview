@@ -27,6 +27,36 @@ export async function convertFileToBase64(file: File): Promise<string> {
   });
 }
 
+// Smart PDF text extractor to compress visual page representations into dense, high-fidelity text tokens
+export async function extractTextFromPdf(file: File): Promise<string> {
+  try {
+    const pdfjsLib = await import('pdfjs-dist');
+    // Set worker source
+    if (pdfjsLib.GlobalWorkerOptions) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '3.11.174'}/pdf.worker.min.js`;
+    }
+    const arrayBuffer = await file.arrayBuffer();
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+    const pdf = await loadingTask.promise;
+    
+    let fullText = `=== CLINICAL RECORD: ${file.name} (Total Pages: ${pdf.numPages}) ===\n\n`;
+    for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+      const page = await pdf.getPage(pageNum);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str || '')
+        .join(' ');
+      if (pageText.trim().length > 0) {
+        fullText += `[PAGE ${pageNum}]\n${pageText}\n\n`;
+      }
+    }
+    return fullText;
+  } catch (err) {
+    console.warn(`Direct PDF text extraction failed for ${file.name}, falling back to base64 inline:`, err);
+    return '';
+  }
+}
+
 const SYSTEM_INSTRUCTION = `
 You are a Board-Certified Neurosurgeon and premier Medicolegal Forensic Causation Expert.
 Your task is to thoroughly analyze the provided clinical medical records (clinic notes, hospital charts, physical therapy, operative reports, MRI/CT imaging reads, and EMG studies) and return a comprehensive, structured JSON forensic evaluation.
@@ -99,7 +129,27 @@ export async function analyzeRecordsWithGemini(
       onStatusUpdate(`Processing record ${i + 1} of ${files.length}: ${file.name}...`);
     }
 
-    if (file.type === 'application/pdf' || file.type.startsWith('image/')) {
+    if (file.type === 'application/pdf') {
+      if (onStatusUpdate) {
+        onStatusUpdate(`Extracting clinical text from ${file.name}...`);
+      }
+      const extractedText = await extractTextFromPdf(file);
+      if (extractedText && extractedText.trim().length > 200) {
+        // High-density extracted text uses 10x-50x fewer tokens than raw image/PDF render bytes
+        parts.push({
+          text: extractedText
+        });
+      } else {
+        // Scanned image PDF or low text layer: fallback to base64 inline data
+        const base64Data = await convertFileToBase64(file);
+        parts.push({
+          inlineData: {
+            mimeType: file.type,
+            data: base64Data
+          }
+        });
+      }
+    } else if (file.type.startsWith('image/')) {
       const base64Data = await convertFileToBase64(file);
       parts.push({
         inlineData: {
