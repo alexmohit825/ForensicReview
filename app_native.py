@@ -298,6 +298,139 @@ Causation Opinion:
         except Exception as e:
             self.error.emit(str(e))
 
+# Lightweight Stance Pivot Worker Thread (Re-evaluates legal & strategy sections only)
+class StanceWorker(QThread):
+    progress = pyqtSignal(int, str)
+    section_ready = pyqtSignal(str, str)
+    finished = pyqtSignal(dict)
+    error = pyqtSignal(str)
+
+    def __init__(self, summary, dossier, is_plaintiff, api_key):
+        super().__init__()
+        self.summary = summary
+        self.dossier = dossier
+        self.is_plaintiff = is_plaintiff
+        self.api_key = api_key
+
+    def run(self):
+        try:
+            client = genai.Client(api_key=self.api_key)
+            stance_text = "PLAINTIFF EXPERT (Injured Party)" if self.is_plaintiff else "DEFENSE EXPERT (Retaining Insurer/Counsel)"
+            stance_focus = (
+                "Focus on proving collision proximate causation, traumatic aggravation of pre-existing degenerative conditions under Washington Pattern Jury Instruction WPI 30.17 Eggshell Skull doctrine, objective MRI/EMG correlates, and countering defense degenerative assertions."
+                if self.is_plaintiff else
+                "Focus on proving pre-existing chronic natural degenerative spondylosis, minor delta-V mechanics, intervening domestic falls, treatment gaps, lack of acute traumatic spinal disruption, and countering plaintiff claims."
+            )
+            
+            # STAGE 1: Formal WPI 30.17 Causation Opinion
+            self.progress.emit(25, f"Pivoting stance to {stance_text}: Reformulating WPI 30.17 Causation...")
+            p_causation = f"""You are a Board-Certified Neurosurgeon and premier Forensic Medicolegal Causation Expert in Washington State.
+Retained Role: {stance_text}
+{stance_focus}
+
+Based on the existing clinical summary and medical records, provide your formal causation opinion:
+# FORENSIC CAUSATION OPINION & WASHINGTON WPI 30.17 ANALYSIS
+**1. Definitive Causation Opinion:** Stated explicitly "Within a reasonable degree of medical probability".
+**2. Biomechanical Causation & Trauma Vector:** Biomechanical impact transfer and tissue forces.
+**3. Washington Pattern Jury Instruction WPI 30.17 Analysis:**
+- Detailed legal application of WPI 30.17 (Aggravation of Pre-Existing Condition / Eggshell Skull rule).
+- How the collision lighting up or exacerbating dormant asymptomatic degenerative spondylosis is legally compensable under Washington law (or if Defense, why degeneration pre-dated incident and accounts for presentation).
+- Distinction between traumatic aggravation vs natural degenerative progression.
+**4. Compensable vs. Intervening Conditions:** Clear demarcation of related conditions vs. unrelated comorbidities or subsequent domestic falls.
+**5. Prognosis, MMI, & Future Care:** Maximum Medical Improvement status, surgical necessity, and lifetime care needs.
+
+Case Summary:
+{self.summary[:5000]}
+
+Clinical Dossier:
+{self.dossier[:70000] if self.dossier else self.summary}
+"""
+            r_causation = client.models.generate_content(model='gemini-3.8-flash', contents=p_causation).text.strip()
+            self.section_ready.emit("causation", r_causation)
+            self.progress.emit(60, f"✓ Causation updated for {stance_text}! Generating aligned Slides & Literature...")
+
+            # STAGE 2: Aligned Courtroom Slides & Literature Support
+            self.progress.emit(65, f"Drafting Courtroom Slides & Literature aligned with {stance_text}...")
+            p_slides_lit = f"""You are a Board-Certified Neurosurgeon and Forensic Medicolegal Expert in Washington State.
+Retained Role: {stance_text}
+
+Produce Courtroom Presentation Slides and Peer-Reviewed Literature Support aligned strictly with the {stance_text} perspective with these EXACT delimiter tags:
+
+<<<SECTION:SLIDES>>>
+# COURTROOM EXHIBIT PRESENTATION SLIDES ({stance_text})
+Provide 8 high-impact presentation slides for trial. For each slide:
+- **Slide Title**
+- **Date & Facility**
+- **Key Evidentiary Finding**
+- **Exact Verbatim Record Quote**
+- **Trial Significance:** Why this note persuades the jury on causation and damages from the {stance_text} perspective.
+
+<<<SECTION:LITERATURE>>>
+# PEER-REVIEWED LITERATURE CITATIONS ({stance_text})
+Provide exactly 5 landmark peer-reviewed spine/neurosurgical journal articles (Spine, JNS, NEJM, Lancet):
+For each article:
+- **Full Citation:** Authors, Title, Journal, Year, Volume/Pages.
+- **Key Scientific Finding:** What the study proved.
+- **Forensic Application:** How this directly supports your {stance_text} opinions.
+
+Case Summary:
+{self.summary[:3500]}
+
+Causation Opinion:
+{r_causation[:3500]}
+"""
+            r_sl = client.models.generate_content(model='gemini-3.8-flash', contents=p_slides_lit).text.strip()
+            if "<<<SECTION:SLIDES>>>" in r_sl and "<<<SECTION:LITERATURE>>>" in r_sl:
+                sl_part = r_sl.split("<<<SECTION:SLIDES>>>")[1].split("<<<SECTION:LITERATURE>>>")[0].strip()
+                lit_part = r_sl.split("<<<SECTION:LITERATURE>>>")[1].strip()
+            elif "<<<SECTION:SLIDES>>>" in r_sl:
+                sl_part = r_sl.split("<<<SECTION:SLIDES>>>")[1].strip()
+                lit_part = "Literature citations integrated in slides."
+            else:
+                sl_part = r_sl
+                lit_part = "Literature citations integrated."
+                
+            self.section_ready.emit("slides", sl_part)
+            self.section_ready.emit("literature", lit_part)
+            self.progress.emit(85, f"✓ Slides & Literature ready! Preparing Deposition Strategy for {stance_text}...")
+
+            # STAGE 3: Deposition Prep & Cross-Exam Strategy
+            self.progress.emit(90, f"Scripting Deposition Preparation & Cross-Examination Attacks for {stance_text}...")
+            p_dep = f"""You are a Board-Certified Neurosurgeon and Forensic Medicolegal Expert in Washington State.
+Retained Role: {stance_text}
+
+Produce Deposition Preparation and Cross-Examination Defense Strategies:
+# DEPOSITION PREPARATION & CROSS-EXAMINATION ATTACKS ({stance_text})
+**1. Strategic Expert Roadmap ({stance_text}):** Core themes to emphasize and protect under oath.
+**2. Five Golden Rules for the Witness Stand:** Demeanor and testimony tactics.
+**3. Cross-Examination Trap Questions & Scripted Neurosurgical Defenses:**
+Provide 4-5 specific attack angles opposing counsel will use against this {stance_text} opinion:
+- **Opposing Counsel Attack Angle:**
+- **Likely Trap Question:** Exact adversarial question opposing counsel will ask Dr. Mohit.
+- **Scripted High-Level Response:** Direct, authoritative neurosurgical answer citing records.
+- **The Trap to Avoid:** Why a naive witness stumbles here.
+- **Source Citations:** Specific record pages and clinical proof.
+
+Case Summary:
+{self.summary[:3500]}
+
+Causation Opinion:
+{r_causation[:3500]}
+"""
+            r_dep = client.models.generate_content(model='gemini-3.8-flash', contents=p_dep).text.strip()
+            self.section_ready.emit("deposition", r_dep)
+            
+            self.progress.emit(100, f"✓ Causation & Strategy Successfully Re-aligned to {stance_text}!")
+            self.finished.emit({
+                "causation": r_causation,
+                "slides": sl_part,
+                "literature": lit_part,
+                "deposition": r_dep
+            })
+
+        except Exception as e:
+            self.error.emit(str(e))
+
 # Document Exporters
 def create_docx_report(sections, file_name, role_name, save_path):
     doc = Document()
@@ -498,8 +631,29 @@ class ForensicWorkstationApp(QMainWindow):
         self.radio_plaintiff = QRadioButton("PLAINTIFF EXPERT")
         self.radio_defense = QRadioButton("DEFENSE EXPERT")
         self.radio_plaintiff.setChecked(True)
+        self.radio_plaintiff.toggled.connect(self.on_role_toggled)
         role_layout.addWidget(self.radio_plaintiff)
         role_layout.addWidget(self.radio_defense)
+
+        self.btn_pivot_stance = QPushButton("🔄 Re-evaluate Causation Only")
+        self.btn_pivot_stance.setEnabled(False)
+        self.btn_pivot_stance.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
+        self.btn_pivot_stance.setStyleSheet("""
+            QPushButton {
+                background-color: #f1f5f9;
+                color: #64748b;
+                border: 1px solid #cbd5e1;
+                padding: 6px;
+                border-radius: 4px;
+            }
+            QPushButton:hover {
+                background-color: #e2e8f0;
+                border-color: #2563eb;
+            }
+        """)
+        self.btn_pivot_stance.clicked.connect(self.reanalyze_stance_only)
+        role_layout.addWidget(self.btn_pivot_stance)
+
         sidebar_layout.addWidget(role_group)
         
         # File/Folder Selection Box
@@ -677,8 +831,84 @@ class ForensicWorkstationApp(QMainWindow):
 
     def clear_records(self):
         self.selected_files = []
+        self.analysis_sections = None
+        self.current_dossier = None
         self.drop_zone.reset_state()
+        self.btn_pivot_stance.setEnabled(False)
+        self.btn_pivot_stance.setText("🔄 Re-evaluate Causation Only")
+        self.btn_pivot_stance.setStyleSheet("""
+            QPushButton {
+                background-color: #f1f5f9;
+                color: #64748b;
+                border: 1px solid #cbd5e1;
+                padding: 6px;
+                border-radius: 4px;
+            }
+        """)
         self.status_lbl.setText("No patient records loaded. Drag and drop any folder or use buttons on left.")
+
+    def on_role_toggled(self):
+        new_role = "PLAINTIFF" if self.radio_plaintiff.isChecked() else "DEFENSE"
+        if self.analysis_sections and self.analysis_sections.get("summary"):
+            self.btn_pivot_stance.setEnabled(True)
+            self.btn_pivot_stance.setText(f"🔄 Re-evaluate for {new_role} Expert")
+            self.btn_pivot_stance.setStyleSheet("""
+                QPushButton {
+                    background-color: #dbeafe;
+                    color: #1e3a8a;
+                    border: 1px solid #3b82f6;
+                    padding: 8px;
+                    font-weight: bold;
+                    border-radius: 4px;
+                }
+                QPushButton:hover {
+                    background-color: #bfdbfe;
+                }
+            """)
+            self.status_lbl.setText(f"Role switched to {new_role} EXPERT. Click 'Re-evaluate for {new_role} Expert' to pivot causation & strategy without reloading.")
+
+    def reanalyze_stance_only(self):
+        if not self.analysis_sections or not self.analysis_sections.get("summary"):
+            QMessageBox.warning(self, "No Case Loaded", "Please analyze patient records first before pivoting stance.")
+            return
+
+        key = self.api_input.text().strip()
+        if not key:
+            QMessageBox.warning(self, "Missing Key", "Please enter a valid Google Gemini API Key.")
+            return
+
+        is_plaintiff = self.radio_plaintiff.isChecked()
+        role_str = "PLAINTIFF" if is_plaintiff else "DEFENSE"
+
+        self.btn_analyze.setEnabled(False)
+        self.btn_pivot_stance.setEnabled(False)
+        self.progress_bar.setVisible(True)
+        self.progress_bar.setValue(15)
+        self.status_lbl.setText(f"Pivoting perspective to {role_str} Expert: Re-evaluating causation & strategy only...")
+
+        self.stance_worker = StanceWorker(
+            self.analysis_sections["summary"],
+            self.current_dossier or self.analysis_sections.get("full_text", ""),
+            is_plaintiff,
+            key
+        )
+        self.stance_worker.progress.connect(self.update_progress)
+        self.stance_worker.section_ready.connect(self.section_arrived)
+        self.stance_worker.finished.connect(self.stance_reanalysis_complete)
+        self.stance_worker.error.connect(self.analysis_failed)
+        self.stance_worker.start()
+
+    def stance_reanalysis_complete(self, updated_sections):
+        self.analysis_sections.update(updated_sections)
+        self.btn_analyze.setEnabled(True)
+        self.btn_pivot_stance.setEnabled(True)
+        self.btn_export_word.setEnabled(True)
+        self.btn_export_pptx.setEnabled(True)
+        self.progress_bar.setVisible(False)
+        role_str = "PLAINTIFF" if self.radio_plaintiff.isChecked() else "DEFENSE"
+        self.status_lbl.setText(f"✓ Re-evaluated for {role_str} Expert! Summary & Timeline preserved, Causation & Strategy updated.")
+        self.tabs.setCurrentIndex(1)  # Jump directly to Tab 2: Causation & WPI 30.17!
+        self.chat_display.append(f"<b>Workstation:</b> Successfully pivoted to <b>{role_str} EXPERT</b>. Causation (WPI 30.17), Courtroom Slides, and Deposition Defense strategies have been updated.<br>")
 
     def select_files_dialog(self):
         files, _ = QFileDialog.getOpenFileNames(self, "Select Medical PDF Records", "", "PDF Files (*.pdf)")
@@ -748,6 +978,7 @@ class ForensicWorkstationApp(QMainWindow):
         self.analysis_sections = sections
         self.current_dossier = dossier
         self.btn_analyze.setEnabled(True)
+        self.btn_pivot_stance.setEnabled(True)
         self.btn_export_word.setEnabled(True)
         self.btn_export_pptx.setEnabled(True)
         self.progress_bar.setVisible(False)
