@@ -214,6 +214,12 @@ Analyze the provided clinical records and return a comprehensive, structured eva
     )
     return response.text
 
+# Track pending file in session state
+if "pending_bytes" not in st.session_state:
+    st.session_state.pending_bytes = None
+if "pending_name" not in st.session_state:
+    st.session_state.pending_name = None
+
 # Ingestion Section (If No Active Case)
 if not st.session_state.analysis_result:
     st.markdown("### 📁 Select or Drop Medical File")
@@ -225,25 +231,24 @@ if not st.session_state.analysis_result:
     
     col1, col2 = st.columns([1, 1])
     with col1:
-        load_desktop_farthing = st.button("📄 Load Farthing.pdf Directly from Desktop (1,185 Pages)", use_container_width=True)
-        
-    target_bytes = None
-    target_name = None
-    
+        if st.button("📄 Load Farthing.pdf Directly from Desktop (1,185 Pages)", use_container_width=True):
+            farthing_path = r"C:\Users\mohal\OneDrive\Desktop\Farthing.pdf"
+            if os.path.exists(farthing_path):
+                with open(farthing_path, "rb") as f:
+                    st.session_state.pending_bytes = f.read()
+                st.session_state.pending_name = "Farthing.pdf"
+                st.rerun()
+            else:
+                st.error(f"Could not locate Farthing.pdf at {farthing_path}")
+                
     if uploaded_file is not None:
-        target_bytes = uploaded_file.read()
-        target_name = uploaded_file.name
-    elif load_desktop_farthing:
-        farthing_path = r"C:\Users\mohal\OneDrive\Desktop\Farthing.pdf"
-        if os.path.exists(farthing_path):
-            with open(farthing_path, "rb") as f:
-                target_bytes = f.read()
-            target_name = "Farthing.pdf"
-        else:
-            st.error(f"Could not locate Farthing.pdf at {farthing_path}")
-            
-    if target_bytes and target_name:
-        st.success(f"Loaded {target_name} ({len(target_bytes) / (1024*1024):.1f} MB)")
+        st.session_state.pending_bytes = uploaded_file.read()
+        st.session_state.pending_name = uploaded_file.name
+        
+    if st.session_state.pending_bytes and st.session_state.pending_name:
+        target_name = st.session_state.pending_name
+        target_bytes = st.session_state.pending_bytes
+        st.success(f"✓ Loaded `{target_name}` ({len(target_bytes) / (1024*1024):.1f} MB)")
         
         analyze_btn = st.button(
             f"🚀 Analyze {target_name} as { 'Plaintiff Expert' if is_plaintiff else 'Defense Expert' }", 
@@ -263,6 +268,8 @@ if not st.session_state.analysis_result:
                     st.session_state.analysis_result = result
                     st.session_state.current_dossier = dossier
                     st.session_state.file_name = target_name
+                    st.session_state.pending_bytes = None
+                    st.session_state.pending_name = None
                     status.update(label="Analysis Complete!", state="complete", expanded=False)
                     st.rerun()
                 except Exception as e:
