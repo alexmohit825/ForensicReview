@@ -27,11 +27,13 @@ export async function convertFileToBase64(file: File): Promise<string> {
   });
 }
 
-// Smart PDF text extractor to compress visual page representations into dense, high-fidelity text tokens
-export async function extractTextFromPdf(file: File): Promise<string> {
+// Dual-Engine PDF Ingestion: Digital Text Extractor + On-Device OCR for Scanned Medical Records
+export async function extractTextFromPdf(
+  file: File, 
+  onStatusUpdate?: (status: string) => void
+): Promise<string> {
   try {
     const pdfjsLib = await import('pdfjs-dist');
-    // Set worker source
     if (pdfjsLib.GlobalWorkerOptions) {
       pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '3.11.174'}/pdf.worker.min.js`;
     }
@@ -40,19 +42,58 @@ export async function extractTextFromPdf(file: File): Promise<string> {
     const pdf = await loadingTask.promise;
     
     let fullText = `=== CLINICAL RECORD: ${file.name} (Total Pages: ${pdf.numPages}) ===\n\n`;
+    let ocrInitialized = false;
+    let tesseractWorker: any = null;
+
     for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
       const page = await pdf.getPage(pageNum);
       const textContent = await page.getTextContent();
-      const pageText = textContent.items
+      let pageText = textContent.items
         .map((item: any) => item.str || '')
         .join(' ');
+
+      // If page has almost no selectable digital text, it is a scanned document -> run on-device OCR
+      if (pageText.trim().length < 50) {
+        try {
+          if (onStatusUpdate) {
+            onStatusUpdate(`Running OCR on scanned page ${pageNum} of ${pdf.numPages} in ${file.name}...`);
+          }
+
+          if (!ocrInitialized) {
+            const { createWorker } = await import('tesseract.js');
+            tesseractWorker = await createWorker('eng');
+            ocrInitialized = true;
+          }
+
+          // Render PDF page to HTML5 Canvas viewport for OCR
+          const viewport = page.getViewport({ scale: 1.5 });
+          const canvas = document.createElement('canvas');
+          const context = canvas.getContext('2d');
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+
+          if (context) {
+            await page.render({ canvasContext: context, viewport }).promise;
+            const ocrResult = await tesseractWorker.recognize(canvas);
+            pageText = ocrResult.data.text || '';
+          }
+        } catch (ocrErr) {
+          console.warn(`OCR failed on page ${pageNum}:`, ocrErr);
+        }
+      }
+
       if (pageText.trim().length > 0) {
-        fullText += `[PAGE ${pageNum}]\n${pageText}\n\n`;
+        fullText += `[PAGE ${pageNum}]\n${pageText.trim()}\n\n`;
       }
     }
+
+    if (tesseractWorker) {
+      await tesseractWorker.terminate();
+    }
+
     return fullText;
   } catch (err) {
-    console.warn(`Direct PDF text extraction failed for ${file.name}, falling back to base64 inline:`, err);
+    console.warn(`Direct PDF text extraction/OCR failed for ${file.name}:`, err);
     return '';
   }
 }
@@ -131,10 +172,10 @@ export async function analyzeRecordsWithGemini(
 
     if (file.type === 'application/pdf') {
       if (onStatusUpdate) {
-        onStatusUpdate(`Extracting clinical text from ${file.name}...`);
+        onStatusUpdate(`Extracting clinical text and running OCR on ${file.name}...`);
       }
-      const extractedText = await extractTextFromPdf(file);
-      if (extractedText && extractedText.trim().length > 200) {
+      const extractedText = await extractTextFromPdf(file, onStatusUpdate);
+      if (extractedText && extractedText.trim().length > 100) {
         // High-density extracted text uses 10x-50x fewer tokens than raw image/PDF render bytes
         parts.push({
           text: extractedText

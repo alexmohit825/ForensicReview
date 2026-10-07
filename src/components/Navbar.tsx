@@ -43,7 +43,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   AI Medicolegal Workstation
                 </span>
                 <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-300">
-                  v4.3 • Smart PDF Text Extraction Active
+                  v4.4 • Dual-Engine OCR Ingestion Active
                 </span>
               </div>
               <div className="text-xs text-slate-500 font-medium truncate max-w-xs">
