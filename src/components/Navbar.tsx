@@ -33,14 +33,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               <Scale className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-lg tracking-tight text-slate-900">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="font-extrabold text-base sm:text-lg tracking-tight text-slate-900">
                   Forensic<span className="text-blue-600">Review</span>
                 </span>
-                <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                <span className="hidden md:inline-block text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
                   AI Medicolegal Workstation
                 </span>
-                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-300">
+                <span className="hidden lg:inline-block text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-300">
                   v4.5 • Active
                 </span>
               </div>
